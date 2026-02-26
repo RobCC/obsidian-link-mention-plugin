@@ -81,12 +81,29 @@ src/
 └── reading-view.ts   # MarkdownPostProcessor for Reading View
 ```
 
-| Component | Approach | Why |
-|-----------|----------|-----|
-| Favicon | Google Favicons API | Reliable, fast, no CORS issues |
-| Page fetch | Obsidian `requestUrl` | Bypasses CORS, works on desktop and mobile |
+| Component    | Approach                        | Why                                            |
+| ------------ | ------------------------------- | ---------------------------------------------- |
+| Favicon      | Google Favicons API             | Reliable, fast, no CORS issues                 |
+| Page fetch   | Obsidian `requestUrl`           | Bypasses CORS, works on desktop and mobile     |
 | Live Preview | CM6 `ViewPlugin` + `WidgetType` | Viewport-scoped, performant inline decorations |
-| Caching | In-memory `Map` | Simple, clears on plugin reload, no stale data |
+| Caching      | In-memory `Map`                 | Simple, clears on plugin reload, no stale data |
+
+# How to test
+
+## Create the plugin folder (adjust the vault path)
+
+mkdir -p "/path/to/your/vault/.obsidian/plugins/link-mention"
+
+## Copy the built files
+
+cp main.js manifest.json styles.css "/path/to/your/vault/.obsidian/plugins/link-mention/"
+
+Then in Obsidian:
+
+1. Open Settings → Community Plugins
+2. Turn off Restricted Mode if it's still on
+3. Find Link Mention in the installed plugins list and enable it
+4. Close settings, open any note, and type [](https://github.com)
 
 ## License
 
