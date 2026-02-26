@@ -1,0 +1,9 @@
+{
+	"id": "link-mention",
+	"name": "Link Mention",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Render empty markdown links as rich inline pills with favicon and page title.",
+	"author": "",
+	"isDesktopOnly": false
+}

@@ -1,0 +1,22 @@
+# build output
+main.js
+
+# npm
+node_modules
+package-lock.json
+
+# env
+.env
+
+# obsidian
+data.json
+
+# editor / OS
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
