@@ -5,6 +5,7 @@
  * Usage: npx tsx src/test-titles.ts github.com reddit.com stackoverflow.com
  */
 
+// @ts-expect-error — jsdom has no bundled types and @types/jsdom conflicts with peer deps
 import { JSDOM, VirtualConsole } from "jsdom";
 
 const virtualConsole = new VirtualConsole();
