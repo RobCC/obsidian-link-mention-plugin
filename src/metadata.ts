@@ -1,14 +1,23 @@
 import { requestUrl } from "obsidian";
 
+/** Resolved metadata for an external link, used to render mention pills. */
 export interface LinkMetadata {
+  /** Display title extracted from the page (og:title, `<title>`, or hostname fallback). */
   title: string;
+  /** Favicon as a `data:` URI, or empty string if unavailable. */
   favicon: string;
 }
 
 const cache = new Map<string, LinkMetadata>();
 const inflight = new Map<string, Promise<LinkMetadata>>();
 
-/** @internal exported for testing */
+/**
+ * Normalizes a user-entered URL for consistent caching and fetching.
+ * Prepends `https://` if no protocol is present, and adds `www.` to
+ * bare two-segment domains (e.g. `google.com` → `www.google.com`).
+ *
+ * @internal exported for testing
+ */
 export function normalizeUrl(raw: string): string {
   let url = raw;
   if (!/^https?:\/\//i.test(url)) {
@@ -27,7 +36,12 @@ export function normalizeUrl(raw: string): string {
   }
 }
 
-/** @internal exported for testing */
+/**
+ * Converts an `ArrayBuffer` to a base-64 encoded string.
+ * Used to inline fetched images as `data:` URIs.
+ *
+ * @internal exported for testing
+ */
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = "";
   const bytes = new Uint8Array(buffer);
@@ -37,7 +51,13 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return window.btoa(binary);
 }
 
-/** @internal exported for testing */
+/**
+ * Extracts the MIME type from a response headers object, doing a
+ * case-insensitive lookup for the `content-type` key and stripping
+ * any charset or boundary parameters. Defaults to `"image/png"`.
+ *
+ * @internal exported for testing
+ */
 export function getContentType(headers: Record<string, string>): string {
   // Header keys may vary in casing across environments
   for (const key of Object.keys(headers)) {
@@ -48,6 +68,10 @@ export function getContentType(headers: Record<string, string>): string {
   return "image/png";
 }
 
+/**
+ * Fetches an image from {@link imageUrl} and returns it as a `data:` URI.
+ * Returns an empty string on any failure (network error, non-image response).
+ */
 async function fetchImageAsDataUri(imageUrl: string): Promise<string> {
   try {
     const response = await requestUrl({ url: imageUrl, method: "GET" });
@@ -63,7 +87,14 @@ async function fetchImageAsDataUri(imageUrl: string): Promise<string> {
   }
 }
 
-/** @internal exported for testing */
+/**
+ * Extracts the favicon URL from a parsed HTML document by checking
+ * `<link rel="icon">`, `<link rel="shortcut icon">`, and
+ * `<link rel="apple-touch-icon">` in order. Resolves relative hrefs
+ * against {@link pageUrl}. Returns `null` if no favicon link is found.
+ *
+ * @internal exported for testing
+ */
 export function extractFaviconUrl(
   doc: Document,
   pageUrl: string,
@@ -90,6 +121,14 @@ export function extractFaviconUrl(
   return null;
 }
 
+/**
+ * Resolves a favicon for a page using a three-step fallback:
+ * 1. Favicon `<link>` element from the page HTML
+ * 2. `/favicon.ico` at the page's origin
+ * 3. Google Favicons API (`s2/favicons`)
+ *
+ * Returns a `data:` URI string, or empty string if all methods fail.
+ */
 async function fetchFavicon(
   pageUrl: string,
   doc: Document | null,
@@ -129,7 +168,12 @@ async function fetchFavicon(
   return "";
 }
 
-/** @internal exported for testing */
+/**
+ * Extracts the `og:title` meta tag content from a parsed document.
+ * Returns `undefined` if the tag is missing or empty.
+ *
+ * @internal exported for testing
+ */
 export function extractOgTitle(doc: Document): string | undefined {
   return (
     doc
@@ -139,7 +183,13 @@ export function extractOgTitle(doc: Document): string | undefined {
   );
 }
 
-/** @internal exported for testing */
+/**
+ * Extracts the `og:site_name` meta tag content from a parsed document.
+ * Useful for homepages where `og:title` may be missing but the site
+ * name is declared (e.g. "GitHub").
+ *
+ * @internal exported for testing
+ */
 export function extractOgSiteName(doc: Document): string | undefined {
   return (
     doc
@@ -149,7 +199,13 @@ export function extractOgSiteName(doc: Document): string | undefined {
   );
 }
 
-/** @internal exported for testing */
+/**
+ * Extracts the page `<title>`, splitting on common separators
+ * (`·`, `|`, `—`, `–`, `-`) and returning only the first segment.
+ * This strips verbose suffixes like "GitHub · Build and ship…".
+ *
+ * @internal exported for testing
+ */
 export function extractDocTitle(doc: Document): string | undefined {
   const raw = doc.querySelector("title")?.textContent?.trim();
   if (!raw) return undefined;
@@ -158,6 +214,11 @@ export function extractDocTitle(doc: Document): string | undefined {
   return segment || undefined;
 }
 
+/**
+ * Fetches a URL's HTML, parses its title and favicon, and returns
+ * a {@link LinkMetadata} object. Title fallback chain:
+ * `<title>` (split) → `og:site_name` → `og:title` → hostname.
+ */
 async function doFetch(url: string): Promise<LinkMetadata> {
   let title: string | undefined;
   let doc: Document | null = null;
@@ -185,10 +246,20 @@ async function doFetch(url: string): Promise<LinkMetadata> {
   return { title, favicon };
 }
 
+/**
+ * Returns previously fetched metadata from the in-memory cache,
+ * or `undefined` if the URL hasn't been fetched yet.
+ * The URL is normalized before lookup.
+ */
 export function getCachedMetadata(url: string): LinkMetadata | undefined {
   return cache.get(normalizeUrl(url));
 }
 
+/**
+ * Fetches and caches metadata (title + favicon) for an external URL.
+ * Normalizes the URL, deduplicates concurrent requests to the same
+ * URL, and caches the result for subsequent calls.
+ */
 export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
   const normalized = normalizeUrl(url);
 

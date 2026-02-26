@@ -1,7 +1,13 @@
 import { MarkdownPostProcessorContext } from "obsidian";
 import { fetchLinkMetadata, getCachedMetadata, normalizeUrl } from "./metadata";
 
-/** @internal exported for testing */
+/**
+ * Creates a styled `<a>` pill element displaying a favicon and title
+ * for an external link. Used by the reading-view post-processor to
+ * replace bare `[](url)` links.
+ *
+ * @internal exported for testing
+ */
 export function createPill(title: string, favicon: string, href: string): HTMLElement {
 	const pill = document.createElement("a");
 	pill.className = "link-mention external-link";
@@ -25,7 +31,13 @@ export function createPill(title: string, favicon: string, href: string): HTMLEl
 	return pill;
 }
 
-/** @internal exported for testing */
+/**
+ * Returns `true` if an anchor has no meaningful display text — i.e. the
+ * text content is empty or identical to the href. This identifies links
+ * rendered from the `[](url)` markdown pattern.
+ *
+ * @internal exported for testing
+ */
 export function isEmptyTextLink(el: HTMLAnchorElement): boolean {
 	const href = el.getAttribute("href") || "";
 	const text = el.textContent?.trim() || "";
@@ -33,6 +45,11 @@ export function isEmptyTextLink(el: HTMLAnchorElement): boolean {
 	return text === "" || text === href;
 }
 
+/**
+ * Markdown post-processor for reading view. Finds all `a.external-link`
+ * elements with no display text (from `[](url)` syntax), replaces them
+ * with styled mention pills, and triggers metadata fetches for uncached URLs.
+ */
 export function readingViewPostProcessor(
 	el: HTMLElement,
 	_ctx: MarkdownPostProcessorContext

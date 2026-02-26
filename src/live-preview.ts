@@ -10,6 +10,10 @@ import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { fetchLinkMetadata, getCachedMetadata, LinkMetadata, normalizeUrl } from "./metadata";
 
+/**
+ * CodeMirror widget that renders a mention pill (favicon + title)
+ * as a replacement decoration for an empty markdown link `[](url)`.
+ */
 class LinkMentionWidget extends WidgetType {
   constructor(
     private readonly url: string,
@@ -18,10 +22,12 @@ class LinkMentionWidget extends WidgetType {
     super();
   }
 
+  /** Two widgets are equal if they point to the same URL with the same title. */
   eq(other: LinkMentionWidget): boolean {
     return this.url === other.url && this.meta.title === other.meta.title;
   }
 
+  /** Builds the pill `<a>` element with favicon, title, and click handling. */
   toDOM(): HTMLElement {
     const pill = document.createElement("a");
     pill.className = "link-mention";
@@ -66,7 +72,13 @@ class LinkMentionWidget extends WidgetType {
   }
 }
 
-/** @internal exported for testing */
+/**
+ * Returns `true` if any cursor in the editor selection falls within the
+ * given `[from, to]` range. Used to avoid replacing the markdown source
+ * when the user is actively editing within the link.
+ *
+ * @internal exported for testing
+ */
 export function cursorInRange(
   selection: EditorSelection,
   from: number,
@@ -75,6 +87,13 @@ export function cursorInRange(
   return selection.ranges.some((range) => range.from >= from && range.to <= to);
 }
 
+/**
+ * Scans visible ranges for empty markdown links (`[](url)`), and builds
+ * a {@link DecorationSet} of replacement widgets for each match that has
+ * cached metadata. Links without cached metadata trigger a background
+ * fetch; {@link onFetchComplete} is called when a fetch resolves so the
+ * view can be re-decorated.
+ */
 function buildDecorations(
   view: EditorView,
   onFetchComplete: () => void,
@@ -135,6 +154,11 @@ function buildDecorations(
   return Decoration.set(decorations, true);
 }
 
+/**
+ * CodeMirror ViewPlugin that powers live-preview mode. Rebuilds
+ * decorations on document changes, viewport scrolls, selection moves,
+ * or when a pending metadata fetch completes.
+ */
 export const livePreviewExtension = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
