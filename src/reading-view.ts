@@ -1,28 +1,32 @@
 import { MarkdownPostProcessorContext } from "obsidian";
-import { fetchLinkMetadata, getCachedMetadata } from "./metadata";
+import { fetchLinkMetadata, getCachedMetadata, normalizeUrl } from "./metadata";
 
-function createPill(title: string, favicon: string, href: string): HTMLElement {
+/** @internal exported for testing */
+export function createPill(title: string, favicon: string, href: string): HTMLElement {
 	const pill = document.createElement("a");
 	pill.className = "link-mention external-link";
-	pill.href = href;
+	pill.href = normalizeUrl(href);
 	pill.setAttribute("target", "_blank");
 	pill.setAttribute("rel", "noopener");
 
-	const img = document.createElement("img");
-	img.className = "link-mention-favicon";
-	img.src = favicon;
-	img.alt = "";
+	if (favicon) {
+		const img = document.createElement("img");
+		img.className = "link-mention-favicon";
+		img.src = favicon;
+		img.alt = "";
+		pill.appendChild(img);
+	}
 
 	const span = document.createElement("span");
 	span.className = "link-mention-title";
 	span.textContent = title;
 
-	pill.appendChild(img);
 	pill.appendChild(span);
 	return pill;
 }
 
-function isEmptyTextLink(el: HTMLAnchorElement): boolean {
+/** @internal exported for testing */
+export function isEmptyTextLink(el: HTMLAnchorElement): boolean {
 	const href = el.getAttribute("href") || "";
 	const text = el.textContent?.trim() || "";
 	// Obsidian renders [](url) with the URL itself as visible text
@@ -46,12 +50,14 @@ export function readingViewPostProcessor(
 			const pill = createPill(cached.title, cached.favicon, href);
 			link.replaceWith(pill);
 		} else {
-			// Show hostname immediately, then upgrade when fetch completes
-			const placeholder = createPill(
-				new URL(href).hostname,
-				`https://www.google.com/s2/favicons?domain=${new URL(href).hostname}&sz=32`,
-				href
-			);
+			// Show hostname placeholder, then upgrade when fetch completes
+			let host: string;
+			try {
+				host = new URL(href).hostname;
+			} catch {
+				host = href;
+			}
+			const placeholder = createPill(host, "", href);
 			link.replaceWith(placeholder);
 
 			fetchLinkMetadata(href).then((meta) => {

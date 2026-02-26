@@ -3,6 +3,10 @@ import {
 	arrayBufferToBase64,
 	getContentType,
 	extractFaviconUrl,
+	extractOgTitle,
+	extractOgSiteName,
+	extractDocTitle,
+	normalizeUrl,
 	getCachedMetadata,
 	fetchLinkMetadata,
 } from "./metadata";
@@ -48,10 +52,6 @@ describe("getContentType", () => {
 });
 
 describe("extractFaviconUrl", () => {
-	function makeDoc(html: string): Document {
-		return new DOMParser().parseFromString(html, "text/html");
-	}
-
 	it('extracts href from <link rel="icon">', () => {
 		const doc = makeDoc(
 			'<html><head><link rel="icon" href="/favicon.ico"></head></html>'
@@ -94,6 +94,136 @@ describe("extractFaviconUrl", () => {
 	});
 });
 
+function makeDoc(html: string): Document {
+	return new DOMParser().parseFromString(html, "text/html");
+}
+
+describe("extractOgTitle", () => {
+	it("extracts og:title content", () => {
+		const doc = makeDoc(
+			'<html><head><meta property="og:title" content="OG Title"></head></html>'
+		);
+		expect(extractOgTitle(doc)).toBe("OG Title");
+	});
+
+	it("returns undefined when og:title is missing", () => {
+		const doc = makeDoc("<html><head></head></html>");
+		expect(extractOgTitle(doc)).toBeUndefined();
+	});
+
+	it("returns undefined for empty content", () => {
+		const doc = makeDoc(
+			'<html><head><meta property="og:title" content=""></head></html>'
+		);
+		expect(extractOgTitle(doc)).toBeUndefined();
+	});
+});
+
+describe("extractOgSiteName", () => {
+	it("extracts og:site_name content", () => {
+		const doc = makeDoc(
+			'<html><head><meta property="og:site_name" content="GitHub"></head></html>'
+		);
+		expect(extractOgSiteName(doc)).toBe("GitHub");
+	});
+
+	it("returns undefined when og:site_name is missing", () => {
+		const doc = makeDoc("<html><head></head></html>");
+		expect(extractOgSiteName(doc)).toBeUndefined();
+	});
+});
+
+describe("extractDocTitle", () => {
+	it("returns the full title when no separator is present", () => {
+		const doc = makeDoc("<html><head><title>No separator</title></head></html>");
+		expect(extractDocTitle(doc)).toBe("No separator");
+	});
+
+	it("splits on · and returns the first segment", () => {
+		const doc = makeDoc(
+			"<html><head><title>GitHub · Change is constant. GitHub keeps you ahead. · GitHub</title></head></html>"
+		);
+		expect(extractDocTitle(doc)).toBe("GitHub");
+	});
+
+	it("splits on | and returns the first segment", () => {
+		const doc = makeDoc(
+			"<html><head><title>Title | Site</title></head></html>"
+		);
+		expect(extractDocTitle(doc)).toBe("Title");
+	});
+
+	it("splits on — (em dash) and returns the first segment", () => {
+		const doc = makeDoc(
+			"<html><head><title>Article — Blog</title></head></html>"
+		);
+		expect(extractDocTitle(doc)).toBe("Article");
+	});
+
+	it("splits on - (hyphen) and returns the first segment", () => {
+		const doc = makeDoc(
+			"<html><head><title>Post - Website</title></head></html>"
+		);
+		expect(extractDocTitle(doc)).toBe("Post");
+	});
+
+	it("returns undefined when title element is missing", () => {
+		const doc = makeDoc("<html><head></head></html>");
+		expect(extractDocTitle(doc)).toBeUndefined();
+	});
+
+	it("returns undefined when title is empty", () => {
+		const doc = makeDoc("<html><head><title></title></head></html>");
+		expect(extractDocTitle(doc)).toBeUndefined();
+	});
+});
+
+describe("normalizeUrl", () => {
+	it("prepends https:// when protocol is missing", () => {
+		expect(normalizeUrl("www.google.com")).toBe("https://www.google.com/");
+	});
+
+	it("prepends www. for bare 2-segment domains", () => {
+		expect(normalizeUrl("google.com")).toBe("https://www.google.com/");
+	});
+
+	it("adds both https:// and www. when both are missing", () => {
+		expect(normalizeUrl("example.com/path")).toBe(
+			"https://www.example.com/path"
+		);
+	});
+
+	it("does not add www. when a subdomain already exists", () => {
+		expect(normalizeUrl("https://docs.google.com")).toBe(
+			"https://docs.google.com/"
+		);
+	});
+
+	it("does not add www. when www. is already present", () => {
+		expect(normalizeUrl("https://www.google.com")).toBe(
+			"https://www.google.com/"
+		);
+	});
+
+	it("preserves http:// protocol", () => {
+		expect(normalizeUrl("http://example.com")).toBe(
+			"http://www.example.com/"
+		);
+	});
+
+	it("preserves path, query, and fragment", () => {
+		expect(normalizeUrl("example.com/path?q=1#frag")).toBe(
+			"https://www.example.com/path?q=1#frag"
+		);
+	});
+
+	it("returns the input as-is for unparseable strings", () => {
+		expect(normalizeUrl("not a url at all ://")).toBe(
+			"https://not a url at all ://"
+		);
+	});
+});
+
 describe("getCachedMetadata", () => {
 	it("returns undefined for an uncached URL", () => {
 		expect(getCachedMetadata("https://never-fetched.example")).toBeUndefined();
@@ -114,7 +244,7 @@ describe("fetchLinkMetadata", () => {
 			status: 200,
 		});
 
-		const meta = await fetchLinkMetadata("https://og-title.example");
+		const meta = await fetchLinkMetadata("https://www.og-title.example");
 		expect(meta.title).toBe("OG Title");
 	});
 
@@ -127,15 +257,15 @@ describe("fetchLinkMetadata", () => {
 			status: 200,
 		});
 
-		const meta = await fetchLinkMetadata("https://title-tag.example");
+		const meta = await fetchLinkMetadata("https://www.title-tag.example");
 		expect(meta.title).toBe("Page Title");
 	});
 
 	it("falls back to hostname on network failure", async () => {
 		mockRequestUrl.mockRejectedValue(new Error("Network error"));
 
-		const meta = await fetchLinkMetadata("https://fail.example/page");
-		expect(meta.title).toBe("fail.example");
+		const meta = await fetchLinkMetadata("https://www.fail.example/page");
+		expect(meta.title).toBe("www.fail.example");
 	});
 
 	it("deduplicates concurrent fetches for the same URL", async () => {
@@ -147,15 +277,13 @@ describe("fetchLinkMetadata", () => {
 			status: 200,
 		});
 
-		const url = "https://dedup.example";
+		const url = "https://www.dedup.example/";
 		const [a, b] = await Promise.all([
 			fetchLinkMetadata(url),
 			fetchLinkMetadata(url),
 		]);
 
 		expect(a).toBe(b);
-		// requestUrl called once for the page + favicon attempts, but only ONE
-		// page fetch (the first call). Filter for calls with the target URL.
 		const pageFetches = mockRequestUrl.mock.calls.filter(
 			(args) => args[0]?.url === url
 		);
@@ -163,7 +291,7 @@ describe("fetchLinkMetadata", () => {
 	});
 
 	it("returns cached value on subsequent calls", async () => {
-		const url = "https://cached-return.example";
+		const url = "https://www.cached-return.example/";
 		mockRequestUrl.mockResolvedValue({
 			text: "<html><head><title>Cached</title></head></html>",
 			headers: { "content-type": "text/html" },
@@ -181,10 +309,27 @@ describe("fetchLinkMetadata", () => {
 
 		const meta = await fetchLinkMetadata(url);
 		expect(meta.title).toBe("Cached");
-		// No additional network calls since it's cached
 		const pageFetches = mockRequestUrl.mock.calls.filter(
 			(args) => args[0]?.url === url
 		);
 		expect(pageFetches).toHaveLength(0);
+	});
+
+	it("normalizes bare domain before fetching", async () => {
+		mockRequestUrl.mockResolvedValue({
+			text: "<html><head><title>Normalized</title></head></html>",
+			headers: { "content-type": "text/html" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		const meta = await fetchLinkMetadata("example.com");
+		expect(meta.title).toBe("Normalized");
+
+		const pageFetch = mockRequestUrl.mock.calls.find(
+			(args) => args[0]?.url === "https://www.example.com/"
+		);
+		expect(pageFetch).toBeDefined();
 	});
 });
