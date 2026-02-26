@@ -105,6 +105,13 @@ Then in Obsidian:
 3. Find Link Mention in the installed plugins list and enable it
 4. Close settings, open any note, and type [](https://github.com)
 
+## Design Note: Client-Side vs Server-Side Unfurling
+
+This plugin fetches link metadata **client-side** via Obsidian's `requestUrl` API (which proxies through Electron to bypass CORS). This is different from how services like Notion handle it:
+
+- **Notion** uses **server-side unfurling** — their servers fetch URLs, avoiding CORS and bot-detection issues. For third-party services, they offer a [Link Preview integration API](https://developers.notion.com/docs/link-previews) where services register a callback URL and return structured preview data.
+- **This plugin** has no server dependency — it works offline-ish, requires no infrastructure, and `requestUrl` handles most sites fine. The tradeoff is that some sites with aggressive bot detection (e.g. Facebook) may return login walls instead of metadata, in which case the plugin falls back to displaying the hostname.
+
 ## License
 
 MIT

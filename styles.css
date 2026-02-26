@@ -1,11 +1,22 @@
+body {
+	--link-mention-gap: 4px;
+	--link-mention-padding: 1px 6px;
+	--link-mention-radius: 4px;
+	--link-mention-background: var(--background-secondary);
+	--link-mention-border: 1px solid var(--background-modifier-border);
+	--link-mention-background-hover: var(--background-modifier-hover);
+	--link-mention-favicon-size: 14px;
+	--link-mention-text-color: var(--text-normal);
+}
+
 .link-mention {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	padding: 1px 6px;
-	border-radius: 4px;
-	background-color: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
+	gap: var(--link-mention-gap);
+	padding: var(--link-mention-padding);
+	border-radius: var(--link-mention-radius);
+	background-color: var(--link-mention-background);
+	border: var(--link-mention-border);
 	cursor: pointer;
 	text-decoration: none;
 	vertical-align: baseline;
@@ -13,18 +24,18 @@
 }
 
 .link-mention:hover {
-	background-color: var(--background-modifier-hover);
+	background-color: var(--link-mention-background-hover);
 }
 
 .link-mention-favicon {
-	width: 14px;
-	height: 14px;
+	width: var(--link-mention-favicon-size);
+	height: var(--link-mention-favicon-size);
 	flex-shrink: 0;
 }
 
 .link-mention-title {
 	font-size: inherit;
-	color: var(--text-normal);
+	color: var(--link-mention-text-color);
 	text-decoration: none;
 	white-space: nowrap;
 }

@@ -10,6 +10,10 @@ export interface LinkMetadata {
 
 const cache = new Map<string, LinkMetadata>();
 const inflight = new Map<string, Promise<LinkMetadata>>();
+const faviconCache = new Map<string, Promise<string>>();
+
+/** Maximum bytes of HTML to parse — only the `<head>` matters. */
+const MAX_HTML_BYTES = 51200;
 
 /**
  * Normalizes a user-entered URL for consistent caching and fetching.
@@ -129,7 +133,7 @@ export function extractFaviconUrl(
  *
  * Returns a `data:` URI string, or empty string if all methods fail.
  */
-async function fetchFavicon(
+async function doFetchFavicon(
   pageUrl: string,
   doc: Document | null,
 ): Promise<string> {
@@ -166,6 +170,29 @@ async function fetchFavicon(
   }
 
   return "";
+}
+
+/**
+ * Deduplicates favicon fetches by origin so multiple URLs on the same
+ * domain (e.g. different GitHub pages) share a single favicon lookup.
+ */
+async function fetchFavicon(
+  pageUrl: string,
+  doc: Document | null,
+): Promise<string> {
+  let origin: string;
+  try {
+    origin = new URL(pageUrl).origin;
+  } catch {
+    return doFetchFavicon(pageUrl, doc);
+  }
+
+  const cached = faviconCache.get(origin);
+  if (cached) return cached;
+
+  const promise = doFetchFavicon(pageUrl, doc);
+  faviconCache.set(origin, promise);
+  return promise;
 }
 
 /**
@@ -224,8 +251,16 @@ async function doFetch(url: string): Promise<LinkMetadata> {
   let doc: Document | null = null;
 
   try {
-    const response = await requestUrl({ url, method: "GET" });
-    const html = response.text;
+    const response = await requestUrl({
+      url,
+      method: "GET",
+      headers: { Range: `bytes=0-${MAX_HTML_BYTES}` },
+    });
+
+    const ct = getContentType(response.headers);
+    if (!ct.startsWith("text/html")) throw new Error("not html");
+
+    const html = response.text.slice(0, MAX_HTML_BYTES);
     doc = new DOMParser().parseFromString(html, "text/html");
     title =
       extractDocTitle(doc) ?? extractOgSiteName(doc) ?? extractOgTitle(doc);

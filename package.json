@@ -6,7 +6,8 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"test": "vitest run"
+		"test": "vitest run",
+		"test-titles": "npx tsx src/test-titles.ts"
 	},
 	"keywords": [],
 	"author": "",

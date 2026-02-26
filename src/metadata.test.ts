@@ -261,6 +261,19 @@ describe("fetchLinkMetadata", () => {
 		expect(meta.title).toBe("Page Title");
 	});
 
+	it("falls back to hostname for non-HTML content-type", async () => {
+		mockRequestUrl.mockResolvedValue({
+			text: '{"key": "value"}',
+			headers: { "content-type": "application/json" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		const meta = await fetchLinkMetadata("https://www.api.example/data");
+		expect(meta.title).toBe("www.api.example");
+	});
+
 	it("falls back to hostname on network failure", async () => {
 		mockRequestUrl.mockRejectedValue(new Error("Network error"));
 
