@@ -237,35 +237,84 @@ export function extractDocTitle(doc: Document): string | undefined {
   const raw = doc.querySelector("title")?.textContent?.trim();
   if (!raw) return undefined;
   // Split on common separators and take the first segment
-  const segment = raw.split(/\s*[·|—–\-]\s*/)[0].trim();
+  const segment = raw.split(/\s*[·|—–]\s*/)[0].trim();
   return segment || undefined;
+}
+
+/** oEmbed endpoints for sites whose HTML is too heavy or JS-rendered. */
+const OEMBED_ENDPOINTS: { pattern: RegExp; endpoint: string }[] = [
+  {
+    pattern: /^https?:\/\/(www\.)?youtube\.com\/watch/,
+    endpoint: "https://www.youtube.com/oembed?format=json&url=",
+  },
+  {
+    pattern: /^https?:\/\/youtu\.be\//,
+    endpoint: "https://www.youtube.com/oembed?format=json&url=",
+  },
+  {
+    pattern: /^https?:\/\/(www\.)?vimeo\.com\/\d+/,
+    endpoint: "https://vimeo.com/api/oembed.json?url=",
+  },
+];
+
+/**
+ * Attempts to fetch a title via oEmbed for supported sites.
+ * Returns the title string or `undefined` if the URL isn't oEmbed-eligible
+ * or the request fails.
+ *
+ * @internal exported for testing
+ */
+export async function fetchOembedTitle(
+  url: string,
+): Promise<string | undefined> {
+  for (const { pattern, endpoint } of OEMBED_ENDPOINTS) {
+    if (pattern.test(url)) {
+      try {
+        const response = await requestUrl({
+          url: `${endpoint}${encodeURIComponent(url)}`,
+          method: "GET",
+        });
+        const title = response.json?.title?.trim();
+        return title || undefined;
+      } catch {
+        return undefined;
+      }
+    }
+  }
+  return undefined;
 }
 
 /**
  * Fetches a URL's HTML, parses its title and favicon, and returns
- * a {@link LinkMetadata} object. Title fallback chain:
+ * a {@link LinkMetadata} object. For supported sites (YouTube, Vimeo),
+ * uses oEmbed for reliable title extraction. Otherwise falls back to:
  * `<title>` (split) → `og:site_name` → `og:title` → hostname.
  */
 async function doFetch(url: string): Promise<LinkMetadata> {
   let title: string | undefined;
   let doc: Document | null = null;
 
-  try {
-    const response = await requestUrl({
-      url,
-      method: "GET",
-      headers: { Range: `bytes=0-${MAX_HTML_BYTES}` },
-    });
+  // Try oEmbed first for supported sites (avoids downloading heavy HTML)
+  title = await fetchOembedTitle(url);
 
-    const ct = getContentType(response.headers);
-    if (!ct.startsWith("text/html")) throw new Error("not html");
+  if (!title) {
+    try {
+      const response = await requestUrl({
+        url,
+        method: "GET",
+        headers: { Range: `bytes=0-${MAX_HTML_BYTES}` },
+      });
 
-    const html = response.text.slice(0, MAX_HTML_BYTES);
-    doc = new DOMParser().parseFromString(html, "text/html");
-    title =
-      extractDocTitle(doc) ?? extractOgSiteName(doc) ?? extractOgTitle(doc);
-  } catch {
-    // title stays undefined, fall through
+      const ct = getContentType(response.headers);
+      if (!ct.startsWith("text/html")) throw new Error("not html");
+
+      const html = response.text.slice(0, MAX_HTML_BYTES);
+      doc = new DOMParser().parseFromString(html, "text/html");
+      title =
+        extractDocTitle(doc) ?? extractOgSiteName(doc) ?? extractOgTitle(doc);
+    } catch {
+      // title stays undefined, fall through
+    }
   }
 
   if (!title) {

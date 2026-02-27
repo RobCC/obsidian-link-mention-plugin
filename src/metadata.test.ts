@@ -6,6 +6,7 @@ import {
 	extractOgTitle,
 	extractOgSiteName,
 	extractDocTitle,
+	fetchOembedTitle,
 	normalizeUrl,
 	getCachedMetadata,
 	fetchLinkMetadata,
@@ -160,11 +161,11 @@ describe("extractDocTitle", () => {
 		expect(extractDocTitle(doc)).toBe("Article");
 	});
 
-	it("splits on - (hyphen) and returns the first segment", () => {
+	it("does not split on hyphen (too common in real content)", () => {
 		const doc = makeDoc(
-			"<html><head><title>Post - Website</title></head></html>"
+			"<html><head><title>GitHub - charmbracelet/crush: Description</title></head></html>"
 		);
-		expect(extractDocTitle(doc)).toBe("Post");
+		expect(extractDocTitle(doc)).toBe("GitHub - charmbracelet/crush: Description");
 	});
 
 	it("returns undefined when title element is missing", () => {
@@ -175,6 +176,73 @@ describe("extractDocTitle", () => {
 	it("returns undefined when title is empty", () => {
 		const doc = makeDoc("<html><head><title></title></head></html>");
 		expect(extractDocTitle(doc)).toBeUndefined();
+	});
+});
+
+describe("fetchOembedTitle", () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+	});
+
+	it("returns title for a YouTube watch URL", async () => {
+		mockRequestUrl.mockResolvedValue({
+			json: { title: "My Video Title" },
+			text: "",
+			headers: {},
+			arrayBuffer: new ArrayBuffer(0),
+			status: 200,
+		});
+
+		const title = await fetchOembedTitle(
+			"https://www.youtube.com/watch?v=abc123"
+		);
+		expect(title).toBe("My Video Title");
+		expect(mockRequestUrl).toHaveBeenCalledWith(
+			expect.objectContaining({
+				url: expect.stringContaining("youtube.com/oembed"),
+			})
+		);
+	});
+
+	it("returns title for a youtu.be short URL", async () => {
+		mockRequestUrl.mockResolvedValue({
+			json: { title: "Short URL Video" },
+			text: "",
+			headers: {},
+			arrayBuffer: new ArrayBuffer(0),
+			status: 200,
+		});
+
+		const title = await fetchOembedTitle("https://youtu.be/abc123");
+		expect(title).toBe("Short URL Video");
+	});
+
+	it("returns title for a Vimeo URL", async () => {
+		mockRequestUrl.mockResolvedValue({
+			json: { title: "Vimeo Video" },
+			text: "",
+			headers: {},
+			arrayBuffer: new ArrayBuffer(0),
+			status: 200,
+		});
+
+		const title = await fetchOembedTitle("https://vimeo.com/123456");
+		expect(title).toBe("Vimeo Video");
+	});
+
+	it("returns undefined for non-oEmbed URLs", async () => {
+		const title = await fetchOembedTitle("https://github.com");
+		expect(title).toBeUndefined();
+		expect(mockRequestUrl).not.toHaveBeenCalled();
+	});
+
+	it("returns undefined when oEmbed request fails", async () => {
+		mockRequestUrl.mockRejectedValue(new Error("Network error"));
+
+		const title = await fetchOembedTitle(
+			"https://www.youtube.com/watch?v=abc123"
+		);
+		expect(title).toBeUndefined();
 	});
 });
 

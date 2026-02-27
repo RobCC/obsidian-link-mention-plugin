@@ -72,7 +72,7 @@ class LinkMentionWidget extends WidgetType {
 }
 
 /** Regex for empty markdown links `[](url)`. Module-level to avoid re-creation. */
-const EMPTY_LINK_RE = /\[]\(([^)]+)\)/g;
+const EMPTY_LINK_RE = /\[]\(([^)\r\n]+)\)/g;
 
 /** A link position found during a full scan. */
 interface KnownLink {
