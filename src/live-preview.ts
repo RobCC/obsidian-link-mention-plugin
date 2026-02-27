@@ -7,7 +7,7 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import { EditorSelection, Range } from "@codemirror/state";
-import { fetchLinkMetadata, getCachedMetadata, LinkMetadata, normalizeUrl } from "./metadata";
+import { fetchLinkMetadata, getCachedMetadata, LinkMetadata } from "./metadata";
 
 /**
  * CodeMirror widget that renders a mention pill (favicon + title)
@@ -49,9 +49,6 @@ class LinkMentionWidget extends WidgetType {
 
     pill.appendChild(span);
 
-    const normalized = normalizeUrl(this.url);
-    pill.href = normalized;
-
     // Always prevent mousedown from moving the cursor into the widget
     // (which would reveal the raw markdown). Only stop propagation for
     // plain left-clicks; let modifier-clicks bubble to Obsidian so it
@@ -67,7 +64,7 @@ class LinkMentionWidget extends WidgetType {
       if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey) return;
       e.preventDefault();
       e.stopPropagation();
-      window.open(normalized, "_blank");
+      window.open(this.url, "_blank");
     });
 
     return pill;
@@ -79,7 +76,7 @@ class LinkMentionWidget extends WidgetType {
 }
 
 /** Regex for empty markdown links `[](url)`. Module-level to avoid re-creation. */
-const EMPTY_LINK_RE = /\[]\(([^)\r\n]+)\)/g;
+const EMPTY_LINK_RE = /\[]\((https?:\/\/[^)\r\n]+)\)/g;
 
 /** A link position found during a full scan. */
 interface KnownLink {

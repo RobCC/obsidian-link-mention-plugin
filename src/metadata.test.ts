@@ -247,17 +247,9 @@ describe("fetchOembedTitle", () => {
 });
 
 describe("normalizeUrl", () => {
-	it("prepends https:// when protocol is missing", () => {
-		expect(normalizeUrl("www.google.com")).toBe("https://www.google.com/");
-	});
-
-	it("prepends www. for bare 2-segment domains", () => {
-		expect(normalizeUrl("google.com")).toBe("https://www.google.com/");
-	});
-
-	it("adds both https:// and www. when both are missing", () => {
-		expect(normalizeUrl("example.com/path")).toBe(
-			"https://www.example.com/path"
+	it("adds www. for bare 2-segment domains", () => {
+		expect(normalizeUrl("https://example.com")).toBe(
+			"https://www.example.com/"
 		);
 	});
 
@@ -280,15 +272,13 @@ describe("normalizeUrl", () => {
 	});
 
 	it("preserves path, query, and fragment", () => {
-		expect(normalizeUrl("example.com/path?q=1#frag")).toBe(
+		expect(normalizeUrl("https://example.com/path?q=1#frag")).toBe(
 			"https://www.example.com/path?q=1#frag"
 		);
 	});
 
 	it("returns the input as-is for unparseable strings", () => {
-		expect(normalizeUrl("not a url at all ://")).toBe(
-			"https://not a url at all ://"
-		);
+		expect(normalizeUrl("not a url")).toBe("not a url");
 	});
 });
 
@@ -405,7 +395,7 @@ describe("fetchLinkMetadata", () => {
 			status: 200,
 		});
 
-		const meta = await fetchLinkMetadata("example.com");
+		const meta = await fetchLinkMetadata("https://example.com");
 		expect(meta.title).toBe("Normalized");
 
 		const pageFetch = mockRequestUrl.mock.calls.find(

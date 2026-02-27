@@ -39,19 +39,14 @@ function releaseSlot(): void {
 }
 
 /**
- * Normalizes a user-entered URL for consistent caching and fetching.
- * 1. Prepends `https://` if no protocol is present, and
- * 2. Adds `www.` to domains
+ * Normalizes a URL for consistent caching and fetching.
+ * Adds `www.` to bare two-segment domains (e.g. `example.com` → `www.example.com`).
  *
  * @internal exported for testing
  */
 export function normalizeUrl(raw: string): string {
-  let url = raw;
-  if (!/^https?:\/\//i.test(url)) {
-    url = `https://${url}`;
-  }
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(raw);
     const parts = parsed.hostname.split(".");
     // Add www. only for bare domains like "google.com" (2 segments)
     if (parts.length === 2) {
@@ -59,7 +54,7 @@ export function normalizeUrl(raw: string): string {
     }
     return parsed.href;
   } catch {
-    return url;
+    return raw;
   }
 }
 

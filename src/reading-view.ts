@@ -1,5 +1,5 @@
 import { MarkdownPostProcessorContext } from "obsidian";
-import { fetchLinkMetadata, getCachedMetadata, normalizeUrl } from "./metadata";
+import { fetchLinkMetadata, getCachedMetadata } from "./metadata";
 
 /**
  * Creates a styled `<a>` pill element displaying a favicon and title
@@ -11,7 +11,7 @@ import { fetchLinkMetadata, getCachedMetadata, normalizeUrl } from "./metadata";
 export function createPill(title: string, favicon: string, href: string): HTMLElement {
 	const pill = document.createElement("a");
 	pill.className = "link-mention external-link";
-	pill.href = normalizeUrl(href);
+	pill.href = href;
 	pill.setAttribute("target", "_blank");
 	pill.setAttribute("rel", "noopener");
 
