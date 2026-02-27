@@ -397,11 +397,14 @@ describe("fetchLinkMetadata", () => {
 		expect(meta.title).toBe("www.api.example");
 	});
 
-	it("falls back to hostname on network failure", async () => {
+	it("falls back to hostname on network failure without caching", async () => {
 		mockRequestUrl.mockRejectedValue(new Error("Network error"));
 
 		const meta = await fetchLinkMetadata("https://www.fail.example/page");
 		expect(meta.title).toBe("www.fail.example");
+
+		// Should NOT be cached — next call should retry
+		expect(getCachedMetadata("https://www.fail.example/page")).toBeUndefined();
 	});
 
 	it("deduplicates concurrent fetches for the same URL", async () => {

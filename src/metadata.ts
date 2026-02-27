@@ -188,41 +188,34 @@ export async function fetchOembedTitle(
  * `<title>` (split) → `og:title` → hostname.
  */
 async function doFetch(url: string): Promise<LinkMetadata> {
-  let title: string | undefined;
-  let author: string | undefined;
   let doc: Document | null = null;
 
   // Try oEmbed first for supported sites (avoids downloading heavy HTML)
-  title = await fetchOembedTitle(url);
-
-  if (!title) {
-    try {
-      const response = await requestUrl({
-        url,
-        method: "GET",
-        headers: { Range: `bytes=0-${MAX_HTML_BYTES}` },
-      });
-
-      const ct = getContentType(response.headers);
-      if (!ct.startsWith("text/html")) throw new Error("not html");
-
-      const html = response.text.slice(0, MAX_HTML_BYTES);
-      doc = new DOMParser().parseFromString(html, "text/html");
-      title = extractDocTitle(doc) ?? extractOgTitle(doc);
-      author = extractAuthor(doc);
-    } catch {
-      // title/author stay undefined, fall through
-    }
+  const oembedTitle = await fetchOembedTitle(url);
+  if (oembedTitle) {
+    const favicon = fetchFavicon(url, null);
+    return { title: oembedTitle, favicon, author: "" };
   }
 
-  if (!title) {
-    try {
-      title = new URL(url).hostname;
-    } catch {
-      title = url;
-    }
-  }
+  // Fetch the page HTML — let errors propagate so callers can
+  // distinguish a failed fetch from a successful one (and avoid
+  // permanently caching a hostname fallback).
+  const response = await requestUrl({
+    url,
+    method: "GET",
+    headers: { Range: `bytes=0-${MAX_HTML_BYTES}` },
+  });
 
+  const ct = getContentType(response.headers);
+  if (!ct.startsWith("text/html")) throw new Error("not html");
+
+  const html = response.text.slice(0, MAX_HTML_BYTES);
+  doc = new DOMParser().parseFromString(html, "text/html");
+
+  const title = extractDocTitle(doc) ?? extractOgTitle(doc);
+  if (!title) throw new Error("no title found");
+
+  const author = extractAuthor(doc);
   const favicon = fetchFavicon(url, doc);
 
   return { title, favicon, author: author ?? "" };
@@ -258,6 +251,14 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
       cache.set(normalized, meta);
       inflight.delete(normalized);
       return meta;
+    })
+    .catch(() => {
+      inflight.delete(normalized);
+      // Return hostname fallback without caching so the next
+      // decoration rebuild will retry the fetch.
+      let hostname: string;
+      try { hostname = new URL(normalized).hostname; } catch { hostname = normalized; }
+      return { title: hostname, favicon: "", author: "" } as LinkMetadata;
     });
   inflight.set(normalized, pending);
   return pending;
