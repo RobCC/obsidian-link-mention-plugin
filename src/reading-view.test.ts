@@ -31,6 +31,26 @@ describe("createPill", () => {
 		expect(span).not.toBeNull();
 		expect(span!.textContent).toBe("My Title");
 	});
+
+	it("includes an author span when author is provided", () => {
+		const pill = createPill("Title", "", "https://ex.com", "GitHub");
+		const author = pill.querySelector("span.link-mention-author");
+		expect(author).not.toBeNull();
+		expect(author!.textContent).toBe("GitHub");
+	});
+
+	it("omits author span when author is empty", () => {
+		const pill = createPill("Title", "", "https://ex.com");
+		const author = pill.querySelector("span.link-mention-author");
+		expect(author).toBeNull();
+	});
+
+	it("renders author before title", () => {
+		const pill = createPill("Title", "fav.ico", "https://ex.com", "Author");
+		const spans = pill.querySelectorAll("span");
+		expect(spans[0].className).toBe("link-mention-author");
+		expect(spans[1].className).toBe("link-mention-title");
+	});
 });
 
 describe("isEmptyTextLink", () => {

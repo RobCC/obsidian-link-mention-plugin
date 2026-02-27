@@ -23,13 +23,13 @@ class LinkMentionWidget extends WidgetType {
 
   /** Two widgets are equal if they point to the same URL with the same title. */
   eq(other: LinkMentionWidget): boolean {
-    return this.url === other.url && this.meta.title === other.meta.title;
+    return this.url === other.url && this.meta.title === other.meta.title && this.meta.author === other.meta.author;
   }
 
   /** Builds the pill `<a>` element with favicon, title, and click handling. */
   toDOM(): HTMLElement {
     const pill = document.createElement("a");
-    pill.className = "link-mention";
+    pill.className = "link-mention external-link";
     pill.href = this.url;
     pill.setAttribute("target", "_blank");
     pill.setAttribute("rel", "noopener");
@@ -39,8 +39,17 @@ class LinkMentionWidget extends WidgetType {
       img.className = "link-mention-favicon";
       img.src = this.meta.favicon;
       img.alt = "";
-      img.addEventListener("error", () => { img.style.display = "none"; });
+      img.addEventListener("error", () => {
+        img.style.display = "none";
+      });
       pill.appendChild(img);
+    }
+
+    if (this.meta.author) {
+      const author = document.createElement("span");
+      author.className = "link-mention-author";
+      author.textContent = this.meta.author;
+      pill.appendChild(author);
     }
 
     const span = document.createElement("span");
@@ -54,6 +63,7 @@ class LinkMentionWidget extends WidgetType {
     // plain left-clicks; let modifier-clicks bubble to Obsidian so it
     // can show/dismiss its context menu.
     pill.addEventListener("mousedown", (e) => {
+      if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey) return;
       e.preventDefault();
       if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
         e.stopPropagation();
@@ -222,11 +232,7 @@ export const livePreviewExtension = ViewPlugin.fromClass(
     update(update: ViewUpdate): void {
       const onFetch = () => this.scheduleDispatch(update.view);
 
-      if (
-        update.docChanged ||
-        update.viewportChanged ||
-        update.selectionSet
-      ) {
+      if (update.docChanged || update.viewportChanged || update.selectionSet) {
         // Full rescan needed — document or viewport changed
         this.hasPendingFetches = false;
         const result = buildDecorations(update.view, onFetch);

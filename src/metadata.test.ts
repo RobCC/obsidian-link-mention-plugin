@@ -2,15 +2,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
 	arrayBufferToBase64,
 	getContentType,
-	extractFaviconUrl,
-	extractOgTitle,
-	extractOgSiteName,
-	extractDocTitle,
 	fetchOembedTitle,
 	normalizeUrl,
 	getCachedMetadata,
 	fetchLinkMetadata,
 } from "./metadata";
+import {
+	extractFaviconUrl,
+	extractOgTitle,
+	extractOgSiteName,
+	extractAuthor,
+	extractDocTitle,
+} from "./parsers/html";
 
 import { requestUrl } from "obsidian";
 const mockRequestUrl = vi.mocked(requestUrl);
@@ -131,6 +134,27 @@ describe("extractOgSiteName", () => {
 	it("returns undefined when og:site_name is missing", () => {
 		const doc = makeDoc("<html><head></head></html>");
 		expect(extractOgSiteName(doc)).toBeUndefined();
+	});
+});
+
+describe("extractAuthor", () => {
+	it("extracts author content", () => {
+		const doc = makeDoc(
+			'<html><head><meta name="author" content="John Doe"></head></html>'
+		);
+		expect(extractAuthor(doc)).toBe("John Doe");
+	});
+
+	it("returns undefined when author is missing", () => {
+		const doc = makeDoc("<html><head></head></html>");
+		expect(extractAuthor(doc)).toBeUndefined();
+	});
+
+	it("returns undefined for empty content", () => {
+		const doc = makeDoc(
+			'<html><head><meta name="author" content=""></head></html>'
+		);
+		expect(extractAuthor(doc)).toBeUndefined();
 	});
 });
 
@@ -304,6 +328,47 @@ describe("fetchLinkMetadata", () => {
 
 		const meta = await fetchLinkMetadata("https://www.og-title.example");
 		expect(meta.title).toBe("OG Title");
+	});
+
+	it("extracts author from meta author tag", async () => {
+		mockRequestUrl.mockResolvedValue({
+			text: '<html><head><meta name="author" content="Jane"><title>Post</title></head></html>',
+			headers: { "content-type": "text/html" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		const meta = await fetchLinkMetadata("https://www.author-tag.example");
+		expect(meta.author).toBe("Jane");
+		expect(meta.title).toBe("Post");
+	});
+
+	it("ignores og:site_name for author", async () => {
+		mockRequestUrl.mockResolvedValue({
+			text: '<html><head><meta property="og:site_name" content="GitHub"><title>Repo</title></head></html>',
+			headers: { "content-type": "text/html" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		const meta = await fetchLinkMetadata("https://www.site-name.example");
+		expect(meta.author).toBe("");
+		expect(meta.title).toBe("Repo");
+	});
+
+	it("returns empty author when meta author is missing", async () => {
+		mockRequestUrl.mockResolvedValue({
+			text: "<html><head><title>No Author</title></head></html>",
+			headers: { "content-type": "text/html" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		const meta = await fetchLinkMetadata("https://www.no-author.example");
+		expect(meta.author).toBe("");
 	});
 
 	it("falls back to <title> when og:title is missing", async () => {

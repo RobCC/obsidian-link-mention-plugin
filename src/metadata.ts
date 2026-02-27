@@ -1,11 +1,19 @@
 import { requestUrl } from "obsidian";
+import {
+  extractAuthor,
+  extractDocTitle,
+  extractFaviconUrl,
+  extractOgTitle,
+} from "./parsers/html";
 
 /** Resolved metadata for an external link, used to render mention pills. */
 export interface LinkMetadata {
-  /** Display title extracted from the page (og:title, `<title>`, or hostname fallback). */
+  /** Display title extracted from the page (`<title>`, `og:title`, or hostname fallback). */
   title: string;
   /** Favicon URL, or empty string if unavailable. */
   favicon: string;
+  /** Author or site name (`meta[name="author"]` or `og:site_name`), or empty string. */
+  author: string;
 }
 
 const cache = new Map<string, LinkMetadata>();
@@ -110,121 +118,24 @@ async function fetchImageAsDataUri(imageUrl: string): Promise<string> {
 }
 
 /**
- * Extracts the favicon URL from a parsed HTML document by checking
- * `<link rel="icon">`, `<link rel="shortcut icon">`, and
- * `<link rel="apple-touch-icon">` in order. Resolves relative hrefs
- * against {@link pageUrl}. Returns `null` if no favicon link is found.
- *
- * @internal exported for testing
- */
-export function extractFaviconUrl(
-  doc: Document,
-  pageUrl: string,
-): string | null {
-  // Try <link rel="icon"> and <link rel="shortcut icon"> in order
-  const selectors = [
-    'link[rel="icon"]',
-    'link[rel="shortcut icon"]',
-    'link[rel="apple-touch-icon"]',
-  ];
-
-  for (const sel of selectors) {
-    const el = doc.querySelector(sel);
-    const href = el?.getAttribute("href");
-    if (href) {
-      try {
-        // href may be relative — resolve against the page URL
-        return new URL(href, pageUrl).href;
-      } catch {
-        continue;
-      }
-    }
-  }
-  return null;
-}
-
-/**
  * Resolves a favicon URL for a page using a two-step fallback:
- * 1. Favicon `<link>` element from the page HTML (no fetch, just DOM query)
+ * 1. Favicon `<link>` element from the page HTML
  * 2. Google Favicons API (`s2/favicons`)
  *
  * Returns a URL string, or empty string if resolution fails.
- * The browser loads the image natively via `<img src>`.
  */
-function doFetchFavicon(
-  pageUrl: string,
-  doc: Document | null,
-): string {
-  // 1. Try favicon URL from the page HTML
+function fetchFavicon(pageUrl: string, doc: Document | null): string {
   if (doc) {
     const fromHtml = extractFaviconUrl(doc, pageUrl);
     if (fromHtml) return fromHtml;
   }
 
-  // 2. Fall back to Google Favicons API
   try {
     const host = new URL(pageUrl).hostname;
     return `https://www.google.com/s2/favicons?domain=${host}&sz=32`;
   } catch {
     return "";
   }
-}
-
-/**
- * Resolves a favicon URL, deduplicating by origin so multiple URLs on
- * the same domain (e.g. different GitHub pages) share one lookup.
- */
-function fetchFavicon(
-  pageUrl: string,
-  doc: Document | null,
-): string {
-  return doFetchFavicon(pageUrl, doc);
-}
-
-/**
- * Extracts the `og:title` meta tag content from a parsed document.
- * Returns `undefined` if the tag is missing or empty.
- *
- * @internal exported for testing
- */
-export function extractOgTitle(doc: Document): string | undefined {
-  return (
-    doc
-      .querySelector('meta[property="og:title"]')
-      ?.getAttribute("content")
-      ?.trim() || undefined
-  );
-}
-
-/**
- * Extracts the `og:site_name` meta tag content from a parsed document.
- * Useful for homepages where `og:title` may be missing but the site
- * name is declared (e.g. "GitHub").
- *
- * @internal exported for testing
- */
-export function extractOgSiteName(doc: Document): string | undefined {
-  return (
-    doc
-      .querySelector('meta[property="og:site_name"]')
-      ?.getAttribute("content")
-      ?.trim() || undefined
-  );
-}
-
-/**
- * Extracts the page `<title>`, splitting on common separators
- * (`·`, `|`, `—`, `–`, `-`) and returning only the first segment.
- * This strips verbose suffixes like "GitHub · Build and ship…".
- *
- * @internal exported for testing
- */
-export function extractDocTitle(doc: Document): string | undefined {
-  const raw = doc.querySelector("title")?.textContent?.trim();
-  if (!raw) return undefined;
-  // Split on common separators and take the first segment
-  const segment = raw.split(/\s*[·|—–]\s*/)[0].trim();
-  return segment || undefined;
 }
 
 /** oEmbed endpoints for sites whose HTML is too heavy or JS-rendered. */
@@ -271,13 +182,14 @@ export async function fetchOembedTitle(
 }
 
 /**
- * Fetches a URL's HTML, parses its title and favicon, and returns
+ * Fetches a URL's HTML, parses its title, author, and favicon, and returns
  * a {@link LinkMetadata} object. For supported sites (YouTube, Vimeo),
  * uses oEmbed for reliable title extraction. Otherwise falls back to:
- * `<title>` (split) → `og:site_name` → `og:title` → hostname.
+ * `<title>` (split) → `og:title` → hostname.
  */
 async function doFetch(url: string): Promise<LinkMetadata> {
   let title: string | undefined;
+  let author: string | undefined;
   let doc: Document | null = null;
 
   // Try oEmbed first for supported sites (avoids downloading heavy HTML)
@@ -296,10 +208,10 @@ async function doFetch(url: string): Promise<LinkMetadata> {
 
       const html = response.text.slice(0, MAX_HTML_BYTES);
       doc = new DOMParser().parseFromString(html, "text/html");
-      title =
-        extractDocTitle(doc) ?? extractOgSiteName(doc) ?? extractOgTitle(doc);
+      title = extractDocTitle(doc) ?? extractOgTitle(doc);
+      author = extractAuthor(doc);
     } catch {
-      // title stays undefined, fall through
+      // title/author stay undefined, fall through
     }
   }
 
@@ -313,7 +225,7 @@ async function doFetch(url: string): Promise<LinkMetadata> {
 
   const favicon = fetchFavicon(url, doc);
 
-  return { title, favicon };
+  return { title, favicon, author: author ?? "" };
 }
 
 /**

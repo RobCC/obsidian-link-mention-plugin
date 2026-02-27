@@ -31,23 +31,22 @@ body {
 } */
 
 .link-mention {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--link-mention-gap);
   border-radius: var(--link-mention-radius);
   cursor: pointer;
-  text-decoration-color: var(--link-mention-underline-color);
-  text-underline-offset: 2px;
-  vertical-align: baseline;
+  text-decoration: none;
   line-height: 1.4;
-  top: 2px;
-  position: relative;
 }
 
-/* Hides Obsidian's arrow for external links */
+/* Hides Obsidian's arrow (a) for external links */
 .link-mention + .external-link,
 .link-mention + * + .external-link {
-  display: none;
+  /* display: none; */
+}
+
+/* Hides Obsidian's arrow (inside the pill) for external links */
+.link-mention.external-link {
+  background-image: none;
+  padding-inline-end: 0.1em;
 }
 
 .link-mention:hover {
@@ -59,12 +58,20 @@ body {
 .link-mention-favicon {
   width: var(--link-mention-favicon-size);
   height: var(--link-mention-favicon-size);
-  flex-shrink: 0;
+  vertical-align: middle;
+  margin-right: var(--link-mention-gap);
+}
+
+.link-mention-author {
+  color: var(--text-muted);
+  margin-right: var(--link-mention-gap);
 }
 
 .link-mention-title {
   font-size: inherit;
   color: var(--link-mention-text-color);
   text-decoration: none;
-  white-space: nowrap;
+  text-decoration-color: var(--link-mention-underline-color);
+  text-underline-offset: 2px;
+  text-decoration-line: var(--link-external-decoration);
 }

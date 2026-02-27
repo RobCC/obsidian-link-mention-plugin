@@ -8,7 +8,7 @@ import { fetchLinkMetadata, getCachedMetadata } from "./metadata";
  *
  * @internal exported for testing
  */
-export function createPill(title: string, favicon: string, href: string): HTMLElement {
+export function createPill(title: string, favicon: string, href: string, author = ""): HTMLElement {
 	const pill = document.createElement("a");
 	pill.className = "link-mention external-link";
 	pill.href = href;
@@ -22,6 +22,13 @@ export function createPill(title: string, favicon: string, href: string): HTMLEl
 		img.alt = "";
 		img.addEventListener("error", () => { img.style.display = "none"; });
 		pill.appendChild(img);
+	}
+
+	if (author) {
+		const authorSpan = document.createElement("span");
+		authorSpan.className = "link-mention-author";
+		authorSpan.textContent = author;
+		pill.appendChild(authorSpan);
 	}
 
 	const span = document.createElement("span");
@@ -65,7 +72,7 @@ export function readingViewPostProcessor(
 
 		const cached = getCachedMetadata(href);
 		if (cached) {
-			const pill = createPill(cached.title, cached.favicon, href);
+			const pill = createPill(cached.title, cached.favicon, href, cached.author);
 			link.replaceWith(pill);
 		} else {
 			// Show hostname placeholder, then upgrade when fetch completes
@@ -79,7 +86,7 @@ export function readingViewPostProcessor(
 			link.replaceWith(placeholder);
 
 			fetchLinkMetadata(href).then((meta) => {
-				const pill = createPill(meta.title, meta.favicon, href);
+				const pill = createPill(meta.title, meta.favicon, href, meta.author);
 				placeholder.replaceWith(pill);
 			});
 		}
