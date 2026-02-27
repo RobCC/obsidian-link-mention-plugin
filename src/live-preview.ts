@@ -251,5 +251,32 @@ export const livePreviewExtension = ViewPlugin.fromClass(
   },
   {
     decorations: (v) => v.decorations,
+    eventHandlers: {
+      mousedown(this: { knownLinks: KnownLink[]; decorations: DecorationSet }, event: MouseEvent, view: EditorView) {
+        if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey) return;
+        const target = event.target as HTMLElement;
+        const icon = target.closest(".external-link");
+        if (!icon || icon.classList.contains("link-mention")) return;
+        const pos = view.posAtDOM(icon);
+        const link = this.knownLinks.find((l) => pos >= l.from && pos <= l.to + 2);
+        if (link) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      },
+      click(this: { knownLinks: KnownLink[]; decorations: DecorationSet }, event: MouseEvent, view: EditorView) {
+        if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey) return;
+        const target = event.target as HTMLElement;
+        const icon = target.closest(".external-link");
+        if (!icon || icon.classList.contains("link-mention")) return;
+        const pos = view.posAtDOM(icon);
+        const link = this.knownLinks.find((l) => pos >= l.from && pos <= l.to + 2);
+        if (link) {
+          event.preventDefault();
+          event.stopPropagation();
+          window.open(link.url, "_blank");
+        }
+      },
+    },
   },
 );

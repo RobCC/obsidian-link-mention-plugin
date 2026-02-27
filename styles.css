@@ -37,10 +37,10 @@ body {
   line-height: 1.4;
 }
 
-/* Hides Obsidian's arrow (a) for external links */
+/* Make Obsidian's external-link icon clickable next to our pill */
 .link-mention + .external-link,
 .link-mention + * + .external-link {
-  /* display: none; */
+  cursor: pointer;
 }
 
 /* Hides Obsidian's arrow (inside the pill) for external links */
