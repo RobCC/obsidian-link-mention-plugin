@@ -3,6 +3,7 @@ import {
   extractAuthor,
   extractDocTitle,
   extractFaviconUrl,
+  extractGithubTitle,
   extractOgTitle,
 } from "./parsers/html";
 
@@ -207,12 +208,25 @@ async function doFetch(url: string): Promise<LinkMetadata> {
   });
 
   const ct = getContentType(response.headers);
+
   if (!ct.startsWith("text/html")) throw new Error("not html");
 
   const html = response.text.slice(0, MAX_HTML_BYTES);
   doc = new DOMParser().parseFromString(html, "text/html");
 
-  const title = extractDocTitle(doc) ?? extractOgTitle(doc);
+  let title: string | undefined;
+
+  try {
+    const hostname = new URL(url).hostname;
+    if (hostname === "github.com" || hostname === "www.github.com") {
+      title = extractGithubTitle(doc);
+    }
+  } catch {
+    /* ignore parse errors, fall through to generic */
+  }
+
+  title ??= extractDocTitle(doc) ?? extractOgTitle(doc);
+
   if (!title) throw new Error("no title found");
 
   const author = extractAuthor(doc);
@@ -257,7 +271,11 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
       // Return hostname fallback without caching so the next
       // decoration rebuild will retry the fetch.
       let hostname: string;
-      try { hostname = new URL(normalized).hostname; } catch { hostname = normalized; }
+      try {
+        hostname = new URL(normalized).hostname;
+      } catch {
+        hostname = normalized;
+      }
       return { title: hostname, favicon: "", author: "" } as LinkMetadata;
     });
   inflight.set(normalized, pending);

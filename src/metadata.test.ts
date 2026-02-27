@@ -13,6 +13,7 @@ import {
 	extractOgSiteName,
 	extractAuthor,
 	extractDocTitle,
+	extractGithubTitle,
 } from "./parsers/html";
 
 import { requestUrl } from "obsidian";
@@ -200,6 +201,34 @@ describe("extractDocTitle", () => {
 	it("returns undefined when title is empty", () => {
 		const doc = makeDoc("<html><head><title></title></head></html>");
 		expect(extractDocTitle(doc)).toBeUndefined();
+	});
+});
+
+describe("extractGithubTitle", () => {
+	it("returns og:title without description suffix", () => {
+		const doc = makeDoc(
+			'<html><head><meta property="og:title" content="obsidianmd/obsidian-api: The Obsidian API"><title>GitHub - obsidianmd/obsidian-api: The Obsidian API</title></head></html>'
+		);
+		expect(extractGithubTitle(doc)).toBe("obsidianmd/obsidian-api");
+	});
+
+	it("returns og:title as-is when no colon is present", () => {
+		const doc = makeDoc(
+			'<html><head><meta property="og:title" content="obsidianmd/obsidian-api"></head></html>'
+		);
+		expect(extractGithubTitle(doc)).toBe("obsidianmd/obsidian-api");
+	});
+
+	it("falls back to doc title when og:title is missing", () => {
+		const doc = makeDoc(
+			"<html><head><title>GitHub - owner/repo: Some description</title></head></html>"
+		);
+		expect(extractGithubTitle(doc)).toBe("GitHub - owner/repo");
+	});
+
+	it("returns undefined when both og:title and doc title are missing", () => {
+		const doc = makeDoc("<html><head></head></html>");
+		expect(extractGithubTitle(doc)).toBeUndefined();
 	});
 });
 
@@ -452,6 +481,19 @@ describe("fetchLinkMetadata", () => {
 			(args) => args[0]?.url === url
 		);
 		expect(pageFetches).toHaveLength(0);
+	});
+
+	it("strips description from GitHub repo titles", async () => {
+		mockRequestUrl.mockResolvedValue({
+			text: '<html><head><meta property="og:title" content="obsidianmd/obsidian-api: The Obsidian API"><title>GitHub - obsidianmd/obsidian-api: The Obsidian API</title></head></html>',
+			headers: { "content-type": "text/html" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		const meta = await fetchLinkMetadata("https://github.com/obsidianmd/obsidian-api");
+		expect(meta.title).toBe("obsidianmd/obsidian-api");
 	});
 
 	it("normalizes bare domain before fetching", async () => {

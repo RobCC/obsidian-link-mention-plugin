@@ -91,3 +91,24 @@ export function extractDocTitle(doc: Document): string | undefined {
   const segment = raw.split(/\s*[·|—–]\s*/)[0].trim();
   return segment || undefined;
 }
+
+/**
+ * Extracts a clean title from a GitHub page.
+ *
+ * Prefers `og:title` (which GitHub sets to e.g. `owner/repo` for
+ * repository pages), stripping any `: description` suffix.
+ * Falls back to {@link extractDocTitle} with the same stripping.
+ *
+ * @internal exported for testing
+ */
+export function extractGithubTitle(doc: Document): string | undefined {
+  const ogTitle = extractOgTitle(doc);
+  if (ogTitle) {
+    return ogTitle.split(":")[0].trim() || undefined;
+  }
+  const docTitle = extractDocTitle(doc);
+  if (docTitle) {
+    return docTitle.split(":")[0].trim() || undefined;
+  }
+  return undefined;
+}
