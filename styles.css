@@ -1,41 +1,70 @@
 body {
-	--link-mention-gap: 4px;
-	--link-mention-padding: 1px 6px;
-	--link-mention-radius: 4px;
-	--link-mention-background: var(--background-secondary);
-	--link-mention-border: 1px solid var(--background-modifier-border);
-	--link-mention-background-hover: var(--background-modifier-hover);
-	--link-mention-favicon-size: 14px;
-	--link-mention-text-color: var(--text-normal);
+  --link-mention-gap: 4px;
+  --link-mention-padding: 1px 2px;
+  --link-mention-radius: 2px;
+  --link-mention-background: var(--background-secondary);
+  --link-mention-border: 1px solid var(--background-modifier-border);
+  --link-mention-background-hover: var(--background-modifier-hover);
+  --link-mention-favicon-size: 14px;
+  --link-mention-text-color: var(--text-normal);
+  --link-mention-underline-color: color-mix(
+    in srgb,
+    var(--text-normal),
+    transparent 70%
+  );
 }
 
+/* .link-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--link-mention-gap);
+  padding: var(--link-mention-padding);
+  border-radius: var(--link-mention-radius);
+  background-color: var(--link-mention-background);
+  border: var(--link-mention-border);
+  cursor: pointer;
+  text-decoration: none;
+  vertical-align: baseline;
+  line-height: 1.4;
+  top: 2px;
+  position: relative;
+} */
+
 .link-mention {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--link-mention-gap);
-	padding: var(--link-mention-padding);
-	border-radius: var(--link-mention-radius);
-	background-color: var(--link-mention-background);
-	border: var(--link-mention-border);
-	cursor: pointer;
-	text-decoration: none;
-	vertical-align: baseline;
-	line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--link-mention-gap);
+  border-radius: var(--link-mention-radius);
+  cursor: pointer;
+  text-decoration-color: var(--link-mention-underline-color);
+  text-underline-offset: 2px;
+  vertical-align: baseline;
+  line-height: 1.4;
+  top: 2px;
+  position: relative;
+}
+
+/* Hides Obsidian's arrow for external links */
+.link-mention + .external-link,
+.link-mention + * + .external-link {
+  display: none;
 }
 
 .link-mention:hover {
-	background-color: var(--link-mention-background-hover);
+  background-color: var(--link-mention-background-hover);
+  box-shadow: 0 0 0 3px var(--link-mention-background-hover);
+  text-decoration: none;
 }
 
 .link-mention-favicon {
-	width: var(--link-mention-favicon-size);
-	height: var(--link-mention-favicon-size);
-	flex-shrink: 0;
+  width: var(--link-mention-favicon-size);
+  height: var(--link-mention-favicon-size);
+  flex-shrink: 0;
 }
 
 .link-mention-title {
-	font-size: inherit;
-	color: var(--link-mention-text-color);
-	text-decoration: none;
-	white-space: nowrap;
+  font-size: inherit;
+  color: var(--link-mention-text-color);
+  text-decoration: none;
+  white-space: nowrap;
 }

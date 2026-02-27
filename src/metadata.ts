@@ -17,8 +17,8 @@ const MAX_HTML_BYTES = 51200;
 
 /**
  * Normalizes a user-entered URL for consistent caching and fetching.
- * Prepends `https://` if no protocol is present, and adds `www.` to
- * bare two-segment domains (e.g. `google.com` → `www.google.com`).
+ * 1. Prepends `https://` if no protocol is present, and
+ * 2. Adds `www.` to domains
  *
  * @internal exported for testing
  */
