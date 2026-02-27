@@ -193,22 +193,30 @@ export const livePreviewExtension = ViewPlugin.fromClass(
     decorations: DecorationSet;
     hasPendingFetches = false;
     knownLinks: KnownLink[] = [];
+    dispatchTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor(view: EditorView) {
-      const onFetch = () => {
-        this.hasPendingFetches = true;
-        view.dispatch();
-      };
+      const onFetch = () => this.scheduleDispatch(view);
       const result = buildDecorations(view, onFetch);
       this.decorations = result.decorations;
       this.knownLinks = result.links;
     }
 
+    /**
+     * Debounces `view.dispatch()` so multiple fetch completions within
+     * 50ms trigger a single re-render instead of one per fetch.
+     */
+    scheduleDispatch(view: EditorView): void {
+      this.hasPendingFetches = true;
+      if (this.dispatchTimer) return;
+      this.dispatchTimer = setTimeout(() => {
+        this.dispatchTimer = null;
+        view.dispatch();
+      }, 50);
+    }
+
     update(update: ViewUpdate): void {
-      const onFetch = () => {
-        this.hasPendingFetches = true;
-        update.view.dispatch();
-      };
+      const onFetch = () => this.scheduleDispatch(update.view);
 
       if (
         update.docChanged ||

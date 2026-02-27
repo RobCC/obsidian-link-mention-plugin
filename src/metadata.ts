@@ -15,6 +15,30 @@ const faviconCache = new Map<string, Promise<string>>();
 /** Maximum bytes of HTML to parse — only the `<head>` matters. */
 const MAX_HTML_BYTES = 51200;
 
+/** Maximum concurrent `doFetch` calls to avoid overwhelming the network. */
+const MAX_CONCURRENT = 3;
+let activeCount = 0;
+const waiting: (() => void)[] = [];
+
+/** Acquires a fetch slot, waiting if the concurrency limit is reached. */
+function acquireSlot(): Promise<void> {
+  if (activeCount < MAX_CONCURRENT) {
+    activeCount++;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => waiting.push(resolve));
+}
+
+/** Releases a fetch slot, unblocking the next waiting caller. */
+function releaseSlot(): void {
+  activeCount--;
+  const next = waiting.shift();
+  if (next) {
+    activeCount++;
+    next();
+  }
+}
+
 /**
  * Normalizes a user-entered URL for consistent caching and fetching.
  * 1. Prepends `https://` if no protocol is present, and
@@ -353,11 +377,14 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
   let pending = inflight.get(normalized);
   if (pending) return pending;
 
-  pending = doFetch(normalized).then((meta) => {
-    cache.set(normalized, meta);
-    inflight.delete(normalized);
-    return meta;
-  });
+  pending = acquireSlot()
+    .then(() => doFetch(normalized))
+    .finally(releaseSlot)
+    .then((meta) => {
+      cache.set(normalized, meta);
+      inflight.delete(normalized);
+      return meta;
+    });
   inflight.set(normalized, pending);
   return pending;
 }
