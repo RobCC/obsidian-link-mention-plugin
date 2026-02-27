@@ -39,6 +39,7 @@ class LinkMentionWidget extends WidgetType {
       img.className = "link-mention-favicon";
       img.src = this.meta.favicon;
       img.alt = "";
+      img.addEventListener("error", () => { img.style.display = "none"; });
       pill.appendChild(img);
     }
 
@@ -48,16 +49,22 @@ class LinkMentionWidget extends WidgetType {
 
     pill.appendChild(span);
 
-    // Prevent mousedown from moving the cursor into the widget range
-    // (which would cause CM to remove the decoration and reveal markdown)
-    pill.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
-
     const normalized = normalizeUrl(this.url);
     pill.href = normalized;
+
+    // Always prevent mousedown from moving the cursor into the widget
+    // (which would reveal the raw markdown). Only stop propagation for
+    // plain left-clicks; let modifier-clicks bubble to Obsidian so it
+    // can show/dismiss its context menu.
+    pill.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.stopPropagation();
+      }
+    });
+
     pill.addEventListener("click", (e) => {
+      if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey) return;
       e.preventDefault();
       e.stopPropagation();
       window.open(normalized, "_blank");

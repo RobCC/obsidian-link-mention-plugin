@@ -4,13 +4,12 @@ import { requestUrl } from "obsidian";
 export interface LinkMetadata {
   /** Display title extracted from the page (og:title, `<title>`, or hostname fallback). */
   title: string;
-  /** Favicon as a `data:` URI, or empty string if unavailable. */
+  /** Favicon URL, or empty string if unavailable. */
   favicon: string;
 }
 
 const cache = new Map<string, LinkMetadata>();
 const inflight = new Map<string, Promise<LinkMetadata>>();
-const faviconCache = new Map<string, Promise<string>>();
 
 /** Maximum bytes of HTML to parse — only the `<head>` matters. */
 const MAX_HTML_BYTES = 51200;
@@ -150,73 +149,41 @@ export function extractFaviconUrl(
 }
 
 /**
- * Resolves a favicon for a page using a three-step fallback:
- * 1. Favicon `<link>` element from the page HTML
- * 2. `/favicon.ico` at the page's origin
- * 3. Google Favicons API (`s2/favicons`)
+ * Resolves a favicon URL for a page using a two-step fallback:
+ * 1. Favicon `<link>` element from the page HTML (no fetch, just DOM query)
+ * 2. Google Favicons API (`s2/favicons`)
  *
- * Returns a `data:` URI string, or empty string if all methods fail.
+ * Returns a URL string, or empty string if resolution fails.
+ * The browser loads the image natively via `<img src>`.
  */
-async function doFetchFavicon(
+function doFetchFavicon(
   pageUrl: string,
   doc: Document | null,
-): Promise<string> {
-  // 1. Try favicon extracted from the page HTML
+): string {
+  // 1. Try favicon URL from the page HTML
   if (doc) {
     const fromHtml = extractFaviconUrl(doc, pageUrl);
-    if (fromHtml) {
-      const dataUri = await fetchImageAsDataUri(fromHtml);
-
-      if (dataUri) return dataUri;
-    }
+    if (fromHtml) return fromHtml;
   }
 
-  // 2. Try /favicon.ico at the origin
-  try {
-    const origin = new URL(pageUrl).origin;
-    const dataUri = await fetchImageAsDataUri(`${origin}/favicon.ico`);
-
-    if (dataUri) return dataUri;
-  } catch {
-    // invalid URL, skip
-  }
-
-  // 3. Try Google Favicons API as last resort
+  // 2. Fall back to Google Favicons API
   try {
     const host = new URL(pageUrl).hostname;
-    const dataUri = await fetchImageAsDataUri(
-      `https://www.google.com/s2/favicons?domain=${host}&sz=32`,
-    );
-
-    if (dataUri) return dataUri;
+    return `https://www.google.com/s2/favicons?domain=${host}&sz=32`;
   } catch {
-    // skip
+    return "";
   }
-
-  return "";
 }
 
 /**
- * Deduplicates favicon fetches by origin so multiple URLs on the same
- * domain (e.g. different GitHub pages) share a single favicon lookup.
+ * Resolves a favicon URL, deduplicating by origin so multiple URLs on
+ * the same domain (e.g. different GitHub pages) share one lookup.
  */
-async function fetchFavicon(
+function fetchFavicon(
   pageUrl: string,
   doc: Document | null,
-): Promise<string> {
-  let origin: string;
-  try {
-    origin = new URL(pageUrl).origin;
-  } catch {
-    return doFetchFavicon(pageUrl, doc);
-  }
-
-  const cached = faviconCache.get(origin);
-  if (cached) return cached;
-
-  const promise = doFetchFavicon(pageUrl, doc);
-  faviconCache.set(origin, promise);
-  return promise;
+): string {
+  return doFetchFavicon(pageUrl, doc);
 }
 
 /**
@@ -349,7 +316,7 @@ async function doFetch(url: string): Promise<LinkMetadata> {
     }
   }
 
-  const favicon = await fetchFavicon(url, doc);
+  const favicon = fetchFavicon(url, doc);
 
   return { title, favicon };
 }

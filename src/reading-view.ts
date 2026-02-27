@@ -20,6 +20,7 @@ export function createPill(title: string, favicon: string, href: string): HTMLEl
 		img.className = "link-mention-favicon";
 		img.src = favicon;
 		img.alt = "";
+		img.addEventListener("error", () => { img.style.display = "none"; });
 		pill.appendChild(img);
 	}
 
