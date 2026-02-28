@@ -105,11 +105,13 @@ export function extractDocTitle(doc: Document): string | undefined {
 export function extractGithubTitle(doc: Document): string | undefined {
   const ogTitle = extractOgTitle(doc);
   if (ogTitle) {
-    return ogTitle.split(":")[0].trim() || undefined;
+    const withoutDesc = ogTitle.split(":")[0].trim();
+    return withoutDesc.split("/").pop()?.trim() || undefined;
   }
   const docTitle = extractDocTitle(doc);
   if (docTitle) {
-    return docTitle.split(":")[0].trim() || undefined;
+    const withoutDesc = docTitle.split(":")[0].trim();
+    return withoutDesc.split("/").pop()?.trim() || undefined;
   }
   return undefined;
 }

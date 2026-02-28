@@ -216,21 +216,21 @@ describe("extractGithubTitle", () => {
 		const doc = makeDoc(
 			'<html><head><meta property="og:title" content="acme/widgets: A widget library"><title>GitHub - acme/widgets: A widget library</title></head></html>'
 		);
-		expect(extractGithubTitle(doc)).toBe("acme/widgets");
+		expect(extractGithubTitle(doc)).toBe("widgets");
 	});
 
-	it("returns og:title as-is when no colon is present", () => {
+	it("returns repo name when no colon is present", () => {
 		const doc = makeDoc(
 			'<html><head><meta property="og:title" content="acme/widgets"></head></html>'
 		);
-		expect(extractGithubTitle(doc)).toBe("acme/widgets");
+		expect(extractGithubTitle(doc)).toBe("widgets");
 	});
 
 	it("falls back to doc title when og:title is missing", () => {
 		const doc = makeDoc(
 			"<html><head><title>GitHub - acme/widgets: A widget library</title></head></html>"
 		);
-		expect(extractGithubTitle(doc)).toBe("GitHub - acme/widgets");
+		expect(extractGithubTitle(doc)).toBe("widgets");
 	});
 
 	it("returns undefined when both og:title and doc title are missing", () => {
@@ -519,7 +519,7 @@ describe("fetchLinkMetadata", () => {
 		});
 
 		const meta = await fetchLinkMetadata("https://github.com/acme/widgets");
-		expect(meta.title).toBe("acme/widgets");
+		expect(meta.title).toBe("widgets");
 	});
 
 	it("falls back to hostname and extracts favicon when HTML has no title (JS-rendered sites)", async () => {
