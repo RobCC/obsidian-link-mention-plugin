@@ -12,6 +12,9 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
+	"pnpm": {
+		"onlyBuiltDependencies": ["esbuild"]
+	},
 	"devDependencies": {
 		"@codemirror/language": "^6.12.2",
 		"@codemirror/state": "^6.5.4",
