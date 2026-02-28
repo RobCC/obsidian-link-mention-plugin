@@ -186,6 +186,13 @@ describe("extractDocTitle", () => {
 		expect(extractDocTitle(doc)).toBe("Article");
 	});
 
+	it("does not split on en dash (too common in real content)", () => {
+		const doc = makeDoc(
+			"<html><head><title>Author Name – Article title | Site</title></head></html>"
+		);
+		expect(extractDocTitle(doc)).toBe("Author Name – Article title");
+	});
+
 	it("does not split on hyphen (too common in real content)", () => {
 		const doc = makeDoc(
 			"<html><head><title>Example - some-project: A cool tool</title></head></html>"
@@ -315,19 +322,19 @@ describe("fetchOembed", () => {
 });
 
 describe("normalizeUrl", () => {
-	it("adds www. for bare 2-segment domains", () => {
+	it("adds trailing slash to bare domain", () => {
 		expect(normalizeUrl("https://example.com")).toBe(
-			"https://www.example.com/"
+			"https://example.com/"
 		);
 	});
 
-	it("does not add www. when a subdomain already exists", () => {
+	it("preserves subdomains", () => {
 		expect(normalizeUrl("https://docs.google.com")).toBe(
 			"https://docs.google.com/"
 		);
 	});
 
-	it("does not add www. when www. is already present", () => {
+	it("preserves www. when already present", () => {
 		expect(normalizeUrl("https://www.google.com")).toBe(
 			"https://www.google.com/"
 		);
@@ -335,13 +342,13 @@ describe("normalizeUrl", () => {
 
 	it("preserves http:// protocol", () => {
 		expect(normalizeUrl("http://example.com")).toBe(
-			"http://www.example.com/"
+			"http://example.com/"
 		);
 	});
 
 	it("preserves path, query, and fragment", () => {
 		expect(normalizeUrl("https://example.com/path?q=1#frag")).toBe(
-			"https://www.example.com/path?q=1#frag"
+			"https://example.com/path?q=1#frag"
 		);
 	});
 
@@ -572,8 +579,23 @@ describe("fetchLinkMetadata", () => {
 		expect(meta.title).toBe("Normalized");
 
 		const pageFetch = mockRequestUrl.mock.calls.find(
-			(args) => typeof args[0] === "object" && args[0]?.url === "https://www.example.com/"
+			(args) => typeof args[0] === "object" && args[0]?.url === "https://example.com/"
 		);
 		expect(pageFetch).toBeDefined();
+	});
+
+	it("uses URL slug as fallback title when HTML has no title and URL has a readable path", async () => {
+		mockRequestUrl.mockResolvedValue({
+			text: "<html><head></head><body></body></html>",
+			headers: { "content-type": "text/html" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		const meta = await fetchLinkMetadata(
+			"https://www.amazon.es/Motivational-Interviewing-Fourth-Edition/dp/146255279X"
+		);
+		expect(meta.title).toBe("Motivational Interviewing Fourth Edition");
 	});
 });

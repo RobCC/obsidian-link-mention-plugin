@@ -1,5 +1,6 @@
 import { MarkdownPostProcessorContext, setIcon } from "obsidian";
 import { fetchLinkMetadata, getCachedMetadata } from "./metadata";
+import { extractUrlTitle } from "./parsers/url";
 
 /**
  * Creates a styled `<a>` pill element displaying a favicon and title
@@ -85,14 +86,9 @@ export function readingViewPostProcessor(
 			const pill = createPill(cached.title, cached.favicon, href, cached.author);
 			link.replaceWith(pill);
 		} else {
-			// Show hostname placeholder, then upgrade when fetch completes
-			let host: string;
-			try {
-				host = new URL(href).hostname;
-			} catch {
-				host = href;
-			}
-			const placeholder = createPill(host, "", href);
+			// Show URL-derived placeholder, then upgrade when fetch completes
+			const placeholderTitle = extractUrlTitle(href);
+			const placeholder = createPill(placeholderTitle, "", href);
 			link.replaceWith(placeholder);
 
 			fetchLinkMetadata(href).then((meta) => {

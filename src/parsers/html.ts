@@ -79,8 +79,9 @@ export function extractAuthor(doc: Document): string | undefined {
 
 /**
  * Extracts the page `<title>`, splitting on common separators
- * (`·`, `|`, `—`, `–`, `-`) and returning only the first segment.
+ * (`·`, `|`, `—`) and returning only the first segment.
  * This strips verbose suffixes like "GitHub · Build and ship…".
+ * En dash (`–`) and hyphen (`-`) are excluded — too common in real content.
  *
  * @internal exported for testing
  */
@@ -88,7 +89,7 @@ export function extractDocTitle(doc: Document): string | undefined {
   const raw = doc.querySelector("title")?.textContent?.trim();
   if (!raw) return undefined;
   // Split on common separators and take the first segment
-  const segment = raw.split(/\s*[·|—–]\s*/)[0].trim();
+  const segment = raw.split(/\s*[·|—]\s*/)[0].trim();
   return segment || undefined;
 }
 

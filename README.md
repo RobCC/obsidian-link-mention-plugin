@@ -115,3 +115,7 @@ This plugin fetches link metadata **client-side** via Obsidian's `requestUrl` AP
 ## License
 
 MIT
+
+# TODO
+
+- Lets users configure number of parallel requests through settings

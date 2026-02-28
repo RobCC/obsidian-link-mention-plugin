@@ -6,6 +6,7 @@ import {
   extractGithubTitle,
   extractOgTitle,
 } from "./parsers/html";
+import { extractUrlTitle } from "./parsers/url";
 
 /** Resolved metadata for an external link, used to render mention pills. */
 export interface LinkMetadata {
@@ -55,13 +56,7 @@ function releaseSlot(): void {
  */
 export function normalizeUrl(raw: string): string {
   try {
-    const parsed = new URL(raw);
-    const parts = parsed.hostname.split(".");
-    // Add www. only for bare domains like "google.com" (2 segments)
-    if (parts.length === 2) {
-      parsed.hostname = `www.${parsed.hostname}`;
-    }
-    return parsed.href;
+    return new URL(raw).href;
   } catch {
     return raw;
   }
@@ -205,9 +200,9 @@ async function doFetch(url: string): Promise<LinkMetadata> {
   const ct = getContentType(response.headers);
 
   if (!ct.startsWith("text/html")) {
-    const hostname = new URL(url).hostname;
+    const title = extractUrlTitle(url);
     const favicon = fetchFavicon(url, null);
-    return { title: hostname, favicon, author: "" };
+    return { title, favicon, author: "" };
   }
 
   const html = response.text.slice(0, MAX_HTML_BYTES);
@@ -227,7 +222,7 @@ async function doFetch(url: string): Promise<LinkMetadata> {
   title ??= extractDocTitle(doc) ?? extractOgTitle(doc);
 
   if (!title) {
-    title = new URL(url).hostname;
+    title = extractUrlTitle(url);
   }
 
   const author = extractAuthor(doc);
@@ -269,15 +264,10 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
     })
     .catch(() => {
       inflight.delete(normalized);
-      // Return hostname fallback without caching so the next
+      // Return fallback without caching so the next
       // decoration rebuild will retry the fetch.
-      let hostname: string;
-      try {
-        hostname = new URL(normalized).hostname;
-      } catch {
-        hostname = normalized;
-      }
-      return { title: hostname, favicon: "", author: "" } as LinkMetadata;
+      const title = extractUrlTitle(normalized);
+      return { title, favicon: "", author: "" } as LinkMetadata;
     });
   inflight.set(normalized, pending);
   return pending;
