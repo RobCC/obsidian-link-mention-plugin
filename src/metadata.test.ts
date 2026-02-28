@@ -141,9 +141,9 @@ describe("extractOgSiteName", () => {
 describe("extractAuthor", () => {
 	it("extracts author content", () => {
 		const doc = makeDoc(
-			'<html><head><meta name="author" content="John Doe"></head></html>'
+			'<html><head><meta name="author" content="Example Author"></head></html>'
 		);
-		expect(extractAuthor(doc)).toBe("John Doe");
+		expect(extractAuthor(doc)).toBe("Example Author");
 	});
 
 	it("returns undefined when author is missing", () => {
@@ -167,9 +167,9 @@ describe("extractDocTitle", () => {
 
 	it("splits on · and returns the first segment", () => {
 		const doc = makeDoc(
-			"<html><head><title>GitHub · Change is constant. GitHub keeps you ahead. · GitHub</title></head></html>"
+			"<html><head><title>Home · Welcome to the site · Example</title></head></html>"
 		);
-		expect(extractDocTitle(doc)).toBe("GitHub");
+		expect(extractDocTitle(doc)).toBe("Home");
 	});
 
 	it("splits on | and returns the first segment", () => {
@@ -188,9 +188,9 @@ describe("extractDocTitle", () => {
 
 	it("does not split on hyphen (too common in real content)", () => {
 		const doc = makeDoc(
-			"<html><head><title>GitHub - charmbracelet/crush: Description</title></head></html>"
+			"<html><head><title>Example - some-project: A cool tool</title></head></html>"
 		);
-		expect(extractDocTitle(doc)).toBe("GitHub - charmbracelet/crush: Description");
+		expect(extractDocTitle(doc)).toBe("Example - some-project: A cool tool");
 	});
 
 	it("returns undefined when title element is missing", () => {
@@ -207,23 +207,23 @@ describe("extractDocTitle", () => {
 describe("extractGithubTitle", () => {
 	it("returns og:title without description suffix", () => {
 		const doc = makeDoc(
-			'<html><head><meta property="og:title" content="obsidianmd/obsidian-api: The Obsidian API"><title>GitHub - obsidianmd/obsidian-api: The Obsidian API</title></head></html>'
+			'<html><head><meta property="og:title" content="acme/widgets: A widget library"><title>GitHub - acme/widgets: A widget library</title></head></html>'
 		);
-		expect(extractGithubTitle(doc)).toBe("obsidianmd/obsidian-api");
+		expect(extractGithubTitle(doc)).toBe("acme/widgets");
 	});
 
 	it("returns og:title as-is when no colon is present", () => {
 		const doc = makeDoc(
-			'<html><head><meta property="og:title" content="obsidianmd/obsidian-api"></head></html>'
+			'<html><head><meta property="og:title" content="acme/widgets"></head></html>'
 		);
-		expect(extractGithubTitle(doc)).toBe("obsidianmd/obsidian-api");
+		expect(extractGithubTitle(doc)).toBe("acme/widgets");
 	});
 
 	it("falls back to doc title when og:title is missing", () => {
 		const doc = makeDoc(
-			"<html><head><title>GitHub - owner/repo: Some description</title></head></html>"
+			"<html><head><title>GitHub - acme/widgets: A widget library</title></head></html>"
 		);
-		expect(extractGithubTitle(doc)).toBe("GitHub - owner/repo");
+		expect(extractGithubTitle(doc)).toBe("GitHub - acme/widgets");
 	});
 
 	it("returns undefined when both og:title and doc title are missing", () => {
@@ -376,7 +376,7 @@ describe("fetchLinkMetadata", () => {
 
 	it("extracts author from meta author tag", async () => {
 		mockRequestUrl.mockResolvedValue({
-			text: '<html><head><meta name="author" content="Jane"><title>Post</title></head></html>',
+			text: '<html><head><meta name="author" content="Example Author"><title>Post</title></head></html>',
 			headers: { "content-type": "text/html" },
 			arrayBuffer: new ArrayBuffer(0),
 			json: {},
@@ -384,7 +384,7 @@ describe("fetchLinkMetadata", () => {
 		});
 
 		const meta = await fetchLinkMetadata("https://www.author-tag.example");
-		expect(meta.author).toBe("Jane");
+		expect(meta.author).toBe("Example Author");
 		expect(meta.title).toBe("Post");
 	});
 
@@ -504,20 +504,20 @@ describe("fetchLinkMetadata", () => {
 
 	it("strips description from GitHub repo titles", async () => {
 		mockRequestUrl.mockResolvedValue({
-			text: '<html><head><meta property="og:title" content="obsidianmd/obsidian-api: The Obsidian API"><title>GitHub - obsidianmd/obsidian-api: The Obsidian API</title></head></html>',
+			text: '<html><head><meta property="og:title" content="acme/widgets: A widget library"><title>GitHub - acme/widgets: A widget library</title></head></html>',
 			headers: { "content-type": "text/html" },
 			arrayBuffer: new ArrayBuffer(0),
 			json: {},
 			status: 200,
 		});
 
-		const meta = await fetchLinkMetadata("https://github.com/obsidianmd/obsidian-api");
-		expect(meta.title).toBe("obsidianmd/obsidian-api");
+		const meta = await fetchLinkMetadata("https://github.com/acme/widgets");
+		expect(meta.title).toBe("acme/widgets");
 	});
 
 	it("falls back to hostname and extracts favicon when HTML has no title (JS-rendered sites)", async () => {
 		mockRequestUrl.mockResolvedValue({
-			text: '<html><head><link rel="shortcut icon" href="https://static.xx.fbcdn.net/favicon.ico"></head><body><div id="app"></div></body></html>',
+			text: '<html><head><link rel="shortcut icon" href="https://cdn.example.com/favicon.ico"></head><body><div id="app"></div></body></html>',
 			headers: { "content-type": "text/html" },
 			arrayBuffer: new ArrayBuffer(0),
 			json: {},
@@ -526,7 +526,7 @@ describe("fetchLinkMetadata", () => {
 
 		const meta = await fetchLinkMetadata("https://www.notitle-favicon.example");
 		expect(meta.title).toBe("www.notitle-favicon.example");
-		expect(meta.favicon).toBe("https://static.xx.fbcdn.net/favicon.ico");
+		expect(meta.favicon).toBe("https://cdn.example.com/favicon.ico");
 	});
 
 	it("falls back to hostname and /favicon.ico when HTML has no title and no favicon link", async () => {
