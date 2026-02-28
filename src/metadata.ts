@@ -119,21 +119,16 @@ async function fetchImageAsDataUri(imageUrl: string): Promise<string> {
 }
 
 /**
- * Resolves a favicon URL for a page using a two-step fallback:
- * 1. Favicon `<link>` element from the page HTML
- * 2. Google Favicons API (`s2/favicons`)
- *
- * Returns a URL string, or empty string if resolution fails.
+ * Resolves a favicon URL from the page's `<link>` elements.
+ * Returns empty string if no favicon is found.
  */
 function fetchFavicon(pageUrl: string, doc: Document | null): string {
   if (doc) {
     const fromHtml = extractFaviconUrl(doc, pageUrl);
     if (fromHtml) return fromHtml;
   }
-
   try {
-    const host = new URL(pageUrl).hostname;
-    return `https://www.google.com/s2/favicons?domain=${host}&sz=32`;
+    return new URL("/favicon.ico", pageUrl).href;
   } catch {
     return "";
   }

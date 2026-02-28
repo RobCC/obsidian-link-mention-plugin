@@ -6,6 +6,7 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
+import { setIcon } from "obsidian";
 import { EditorSelection, Range } from "@codemirror/state";
 import { fetchLinkMetadata, getCachedMetadata, LinkMetadata } from "./metadata";
 
@@ -43,6 +44,11 @@ class LinkMentionWidget extends WidgetType {
         img.style.display = "none";
       });
       pill.appendChild(img);
+    } else {
+      const iconEl = document.createElement("span");
+      iconEl.className = "link-mention-favicon link-mention-default-icon";
+      setIcon(iconEl, "link");
+      pill.appendChild(iconEl);
     }
 
     if (this.meta.author) {

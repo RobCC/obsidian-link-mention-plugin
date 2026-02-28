@@ -43,6 +43,12 @@ body {
   cursor: pointer;
 }
 
+/* When setting is off, hide the external arrow next to pills */
+body.link-mention-hide-arrow .link-mention + .external-link,
+body.link-mention-hide-arrow .link-mention + * + .external-link {
+  display: none;
+}
+
 /* Hides Obsidian's arrow (inside the pill) for external links */
 .link-mention.external-link {
   background-image: none;
@@ -60,6 +66,16 @@ body {
   height: var(--link-mention-favicon-size);
   vertical-align: middle;
   margin-right: var(--link-mention-gap);
+}
+
+.link-mention-default-icon {
+  color: var(--text-muted);
+}
+
+.link-mention-default-icon svg {
+  width: var(--link-mention-favicon-size);
+  height: var(--link-mention-favicon-size);
+  vertical-align: middle;
 }
 
 .link-mention-author {

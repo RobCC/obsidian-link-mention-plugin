@@ -1,4 +1,4 @@
-import { MarkdownPostProcessorContext } from "obsidian";
+import { MarkdownPostProcessorContext, setIcon } from "obsidian";
 import { fetchLinkMetadata, getCachedMetadata } from "./metadata";
 
 /**
@@ -22,6 +22,11 @@ export function createPill(title: string, favicon: string, href: string, author 
 		img.alt = "";
 		img.addEventListener("error", () => { img.style.display = "none"; });
 		pill.appendChild(img);
+	} else {
+		const iconEl = document.createElement("span");
+		iconEl.className = "link-mention-favicon link-mention-default-icon";
+		setIcon(iconEl, "link");
+		pill.appendChild(iconEl);
 	}
 
 	if (author) {
