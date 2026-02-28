@@ -496,6 +496,50 @@ describe("fetchLinkMetadata", () => {
 		expect(meta.title).toBe("obsidianmd/obsidian-api");
 	});
 
+	it("falls back to hostname and extracts favicon when HTML has no title (JS-rendered sites)", async () => {
+		mockRequestUrl.mockResolvedValue({
+			text: '<html><head><link rel="shortcut icon" href="https://static.xx.fbcdn.net/favicon.ico"></head><body><div id="app"></div></body></html>',
+			headers: { "content-type": "text/html" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		const meta = await fetchLinkMetadata("https://www.notitle-favicon.example");
+		expect(meta.title).toBe("www.notitle-favicon.example");
+		expect(meta.favicon).toBe("https://static.xx.fbcdn.net/favicon.ico");
+	});
+
+	it("falls back to hostname and /favicon.ico when HTML has no title and no favicon link", async () => {
+		mockRequestUrl.mockResolvedValue({
+			text: "<html><head></head><body><div id=\"app\"></div></body></html>",
+			headers: { "content-type": "text/html" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		const meta = await fetchLinkMetadata("https://www.notitle-nofav.example");
+		expect(meta.title).toBe("www.notitle-nofav.example");
+		expect(meta.favicon).toBe("https://www.notitle-nofav.example/favicon.ico");
+	});
+
+	it("caches result when HTML has no title", async () => {
+		const url = "https://www.notitle-cached.example/";
+		mockRequestUrl.mockResolvedValue({
+			text: "<html><head></head><body></body></html>",
+			headers: { "content-type": "text/html" },
+			arrayBuffer: new ArrayBuffer(0),
+			json: {},
+			status: 200,
+		});
+
+		await fetchLinkMetadata(url);
+		const cached = getCachedMetadata(url);
+		expect(cached).toBeDefined();
+		expect(cached!.title).toBe("www.notitle-cached.example");
+	});
+
 	it("normalizes bare domain before fetching", async () => {
 		mockRequestUrl.mockResolvedValue({
 			text: "<html><head><title>Normalized</title></head></html>",

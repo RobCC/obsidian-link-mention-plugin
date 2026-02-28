@@ -222,7 +222,9 @@ async function doFetch(url: string): Promise<LinkMetadata> {
 
   title ??= extractDocTitle(doc) ?? extractOgTitle(doc);
 
-  if (!title) throw new Error("no title found");
+  if (!title) {
+    title = new URL(url).hostname;
+  }
 
   const author = extractAuthor(doc);
   const favicon = fetchFavicon(url, doc);
