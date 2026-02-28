@@ -73,7 +73,9 @@ export function extractAuthor(doc: Document): string | undefined {
  */
 export function extractDocTitle(doc: Document): string | undefined {
   const raw = doc.querySelector('title')?.textContent?.trim();
-  if (!raw) return undefined;
+  if (!raw) {
+    return undefined;
+  }
   // Split on common separators and take the first segment
   const segment = raw.split(/\s*[·|—]\s*/)[0].trim();
   return segment || undefined;

@@ -106,7 +106,9 @@ export function getContentType(headers: Record<string, string>): string {
 function fetchFavicon(pageUrl: string, doc: Document | null): string {
   if (doc) {
     const fromHtml = extractFaviconUrl(doc, pageUrl);
-    if (fromHtml) return fromHtml;
+    if (fromHtml) {
+      return fromHtml;
+    }
   }
   try {
     return new URL('/favicon.ico', pageUrl).href;
@@ -149,7 +151,9 @@ export async function fetchOembed(
           method: 'GET',
         });
         const title = response.json?.title?.trim();
-        if (!title) return undefined;
+        if (!title) {
+          return undefined;
+        }
         const author = response.json?.author_name?.trim() ?? '';
         return { title, author };
       } catch {
@@ -246,10 +250,14 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
   const normalized = normalizeUrl(url);
 
   const cached = cache.get(normalized);
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
 
   let pending = inflight.get(normalized);
-  if (pending) return pending;
+  if (pending) {
+    return pending;
+  }
 
   pending = acquireSlot()
     .then(() => doFetch(normalized))

@@ -259,7 +259,10 @@ describe('fetchOembed', () => {
     });
 
     const result = await fetchOembed('https://youtu.be/abc123');
-    expect(result).toEqual({ title: 'Short URL Video', author: 'Short Channel' });
+    expect(result).toEqual({
+      title: 'Short URL Video',
+      author: 'Short Channel',
+    });
   });
 
   it('returns title and author for a Vimeo URL', async () => {

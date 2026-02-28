@@ -73,7 +73,9 @@ async function fetchOembedTitle(url: string): Promise<string | undefined> {
 
 function extractDocTitle(doc: Document): string | undefined {
   const raw = doc.querySelector('title')?.textContent?.trim();
-  if (!raw) return undefined;
+  if (!raw) {
+    return undefined;
+  }
   const segment = raw.split(/\s*[·|—–]\s*/)[0].trim();
   return segment || undefined;
 }

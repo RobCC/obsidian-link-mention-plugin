@@ -78,10 +78,14 @@ export function readingViewPostProcessor(
   const links = el.querySelectorAll<HTMLAnchorElement>('a.external-link');
 
   for (const link of Array.from(links)) {
-    if (!isEmptyTextLink(link)) continue;
+    if (!isEmptyTextLink(link)) {
+      continue;
+    }
 
     const href = link.getAttribute('href');
-    if (!href) continue;
+    if (!href) {
+      continue;
+    }
 
     const cached = getCachedMetadata(href);
     if (cached) {

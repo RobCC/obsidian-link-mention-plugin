@@ -78,7 +78,9 @@ class LinkMentionWidget extends WidgetType {
     // plain left-clicks; let modifier-clicks bubble to Obsidian so it
     // can show/dismiss its context menu.
     pill.addEventListener('mousedown', (e) => {
-      if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey) {
+        return;
+      }
       e.preventDefault();
       if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
         e.stopPropagation();
@@ -86,7 +88,9 @@ class LinkMentionWidget extends WidgetType {
     });
 
     pill.addEventListener('click', (e) => {
-      if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey) {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       window.open(this.url, '_blank');
@@ -131,18 +135,26 @@ export function cursorInRange(selection: EditorSelection, from: number, to: numb
  */
 function getSelectedSearchRange(view: EditorView): { from: number; to: number } | null {
   const leaf = view.dom.closest('.workspace-leaf-content');
-  if (!leaf) return null;
+  if (!leaf) {
+    return null;
+  }
 
   const input = leaf.querySelector('.document-search-container input') as HTMLInputElement | null;
   const query = input?.value;
-  if (!query) return null;
+  if (!query) {
+    return null;
+  }
 
   const counter = leaf.querySelector('.document-search-count') as HTMLElement | null;
   const m = counter?.textContent?.match(/(\d+)\s*\/\s*(\d+)/);
-  if (!m) return null;
+  if (!m) {
+    return null;
+  }
 
   const currentIndex = parseInt(m[1], 10) - 1; // 0-based
-  if (currentIndex < 0) return null;
+  if (currentIndex < 0) {
+    return null;
+  }
 
   const text = view.state.doc.toString().toLowerCase();
   const lowerQuery = query.toLowerCase();
@@ -150,8 +162,12 @@ function getSelectedSearchRange(view: EditorView): { from: number; to: number } 
   let idx = 0;
   for (let i = 0; i <= currentIndex; i++) {
     const pos = text.indexOf(lowerQuery, idx);
-    if (pos === -1) return null;
-    if (i === currentIndex) return { from: pos, to: pos + query.length };
+    if (pos === -1) {
+      return null;
+    }
+    if (i === currentIndex) {
+      return { from: pos, to: pos + query.length };
+    }
     idx = pos + 1;
   }
   return null;
@@ -311,7 +327,9 @@ export const livePreviewExtension = ViewPlugin.fromClass(
      * events (Enter, arrows) before we read it.
      */
     private scheduleSearchRebuild = (): void => {
-      if (this.searchDebounce) clearTimeout(this.searchDebounce);
+      if (this.searchDebounce) {
+        clearTimeout(this.searchDebounce);
+      }
       this.searchDebounce = setTimeout(() => {
         this.searchDebounce = null;
         this.searchNeedsRebuild = true;
@@ -330,7 +348,9 @@ export const livePreviewExtension = ViewPlugin.fromClass(
     destroy(): void {
       this.searchObserver?.disconnect();
       this.detachSearchInput();
-      if (this.searchDebounce) clearTimeout(this.searchDebounce);
+      if (this.searchDebounce) {
+        clearTimeout(this.searchDebounce);
+      }
     }
 
     /**
@@ -339,7 +359,9 @@ export const livePreviewExtension = ViewPlugin.fromClass(
      */
     scheduleDispatch(view: EditorView): void {
       this.hasPendingFetches = true;
-      if (this.dispatchTimer) return;
+      if (this.dispatchTimer) {
+        return;
+      }
       this.dispatchTimer = setTimeout(() => {
         this.dispatchTimer = null;
         view.dispatch();
@@ -349,7 +371,6 @@ export const livePreviewExtension = ViewPlugin.fromClass(
     update(update: ViewUpdate): void {
       this.view = update.view;
       const onFetch = () => this.scheduleDispatch(update.view);
-
       const selectionMoved = update.state.selection !== update.startState.selection;
       if (update.docChanged || update.viewportChanged || selectionMoved) {
         // Full rescan needed — document, viewport, or selection changed
@@ -373,10 +394,14 @@ export const livePreviewExtension = ViewPlugin.fromClass(
         event: MouseEvent,
         view: EditorView,
       ) {
-        if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey) {
+          return;
+        }
         const target = event.target as HTMLElement;
         const icon = target.closest('.external-link');
-        if (!icon || icon.classList.contains('link-mention')) return;
+        if (!icon || icon.classList.contains('link-mention')) {
+          return;
+        }
         const pos = view.posAtDOM(icon);
         const link = this.knownLinks.find((l) => pos >= l.from && pos <= l.to + 2);
         if (link) {
@@ -389,10 +414,14 @@ export const livePreviewExtension = ViewPlugin.fromClass(
         event: MouseEvent,
         view: EditorView,
       ) {
-        if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey) {
+          return;
+        }
         const target = event.target as HTMLElement;
         const icon = target.closest('.external-link');
-        if (!icon || icon.classList.contains('link-mention')) return;
+        if (!icon || icon.classList.contains('link-mention')) {
+          return;
+        }
         const pos = view.posAtDOM(icon);
         const link = this.knownLinks.find((l) => pos >= l.from && pos <= l.to + 2);
         if (link) {
