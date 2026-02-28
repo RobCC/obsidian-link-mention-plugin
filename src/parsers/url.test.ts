@@ -95,16 +95,28 @@ describe("extractRedditTitle", () => {
     });
   });
 
-  it("returns undefined for subreddit listing", () => {
+  it("returns subreddit name for subreddit listing", () => {
     expect(
       extractRedditTitle("https://www.reddit.com/r/ClaudeAI/")
-    ).toBeUndefined();
+    ).toEqual({ title: "r/ClaudeAI", author: "" });
+  });
+
+  it("returns subreddit name for subreddit sort pages", () => {
+    expect(
+      extractRedditTitle("https://www.reddit.com/r/programming/hot")
+    ).toEqual({ title: "r/programming", author: "" });
   });
 
   it("returns undefined for Reddit homepage", () => {
     expect(
       extractRedditTitle("https://www.reddit.com/")
     ).toBeUndefined();
+  });
+
+  it("returns username for user profile URL", () => {
+    expect(
+      extractRedditTitle("https://www.reddit.com/user/rKreia/")
+    ).toEqual({ title: "u/rKreia", author: "" });
   });
 
   it("returns undefined for non-Reddit URLs", () => {

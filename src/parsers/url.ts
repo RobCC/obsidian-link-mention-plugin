@@ -23,7 +23,13 @@ export function extractRedditTitle(
   }
 
   const match = REDDIT_POST_RE.exec(parsed.pathname);
-  if (!match) return undefined;
+  if (!match) {
+    const subMatch = /^\/r\/([^/]+)/.exec(parsed.pathname);
+    if (subMatch) return { title: `r/${subMatch[1]}`, author: "" };
+    const userMatch = /^\/user\/([^/]+)/.exec(parsed.pathname);
+    if (userMatch) return { title: `u/${userMatch[1]}`, author: "" };
+    return undefined;
+  }
 
   const subreddit = match[1];
   const slug = decodeURIComponent(match[2]);
