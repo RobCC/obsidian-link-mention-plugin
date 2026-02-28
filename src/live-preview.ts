@@ -122,6 +122,20 @@ export function cursorInRange(
 }
 
 /**
+ * Returns the current in-editor search query (Ctrl+F) if the search
+ * panel is open, or `null` otherwise. Reads from the DOM because
+ * Obsidian's search does not expose the query through the CM state.
+ */
+function getActiveSearchQuery(view: EditorView): string | null {
+  const leaf = view.dom.closest(".workspace-leaf-content");
+  if (!leaf) return null;
+  const input = leaf.querySelector(
+    ".document-search-container input",
+  ) as HTMLInputElement | null;
+  return input?.value || null;
+}
+
+/**
  * Scans visible ranges for empty markdown links (`[](url)`), and builds
  * a {@link DecorationSet} of replacement widgets for each match that has
  * cached metadata. Links without cached metadata trigger a background
@@ -138,6 +152,7 @@ function buildDecorations(
   const decorations: Range<Decoration>[] = [];
   const links: KnownLink[] = [];
   const doc = view.state.doc;
+  const searchQuery = getActiveSearchQuery(view)?.toLowerCase() ?? null;
 
   // Scan the visible text with a regex (syntax tree node types vary
   // across Obsidian versions, so regex is more reliable).
@@ -155,6 +170,12 @@ function buildDecorations(
       links.push({ from: matchFrom, to: matchTo, url });
 
       if (cursorInRange(view.state.selection, matchFrom, matchTo)) {
+        continue;
+      }
+
+      // If the in-editor search (Ctrl+F) query matches text inside
+      // this link, collapse the pill so the search highlight is visible.
+      if (searchQuery && match[0].toLowerCase().includes(searchQuery)) {
         continue;
       }
 
@@ -186,9 +207,15 @@ function rebuildFromKnown(
   onFetchComplete: () => void,
 ): DecorationSet {
   const decorations: Range<Decoration>[] = [];
+  const searchQuery = getActiveSearchQuery(view)?.toLowerCase() ?? null;
+  const doc = view.state.doc;
 
   for (const { from, to, url } of knownLinks) {
     if (cursorInRange(view.state.selection, from, to)) {
+      continue;
+    }
+
+    if (searchQuery && doc.sliceString(from, to).toLowerCase().includes(searchQuery)) {
       continue;
     }
 
@@ -219,12 +246,36 @@ export const livePreviewExtension = ViewPlugin.fromClass(
     hasPendingFetches = false;
     knownLinks: KnownLink[] = [];
     dispatchTimer: ReturnType<typeof setTimeout> | null = null;
+    private searchObserver: MutationObserver | null = null;
+    private view: EditorView;
 
     constructor(view: EditorView) {
+      this.view = view;
       const onFetch = () => this.scheduleDispatch(view);
       const result = buildDecorations(view, onFetch);
       this.decorations = result.decorations;
       this.knownLinks = result.links;
+
+      // Obsidian's in-editor Ctrl+F search bar is inserted/removed
+      // dynamically in the workspace leaf. Watch for it so we can
+      // rebuild decorations when the search query changes.
+      const leaf = view.dom.closest(".workspace-leaf-content");
+      if (leaf) {
+        this.searchObserver = new MutationObserver(() => {
+          view.dispatch();
+        });
+        this.searchObserver.observe(leaf, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+          attributes: true,
+          attributeFilter: ["value"],
+        });
+      }
+    }
+
+    destroy(): void {
+      this.searchObserver?.disconnect();
     }
 
     /**
@@ -241,16 +292,19 @@ export const livePreviewExtension = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate): void {
+      this.view = update.view;
       const onFetch = () => this.scheduleDispatch(update.view);
 
-      if (update.docChanged || update.viewportChanged || update.selectionSet) {
-        // Full rescan needed — document or viewport changed
+      const selectionMoved = update.state.selection !== update.startState.selection;
+      if (update.docChanged || update.viewportChanged || selectionMoved) {
+        // Full rescan needed — document, viewport, or selection changed
         this.hasPendingFetches = false;
         const result = buildDecorations(update.view, onFetch);
         this.decorations = result.decorations;
         this.knownLinks = result.links;
-      } else if (this.hasPendingFetches) {
-        // Only re-check cache for already-known positions (no regex scan)
+      } else if (this.hasPendingFetches || getActiveSearchQuery(update.view)) {
+        // Rebuild when fetches pending or search is active — the search
+        // query may match text inside pill ranges, requiring collapse.
         this.hasPendingFetches = false;
         this.decorations = rebuildFromKnown(
           update.view,
