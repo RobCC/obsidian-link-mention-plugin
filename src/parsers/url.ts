@@ -7,9 +7,7 @@ const REDDIT_POST_RE = /^\/r\/([^/]+)\/comments\/[^/]+\/([^/]+)/;
  *
  * @internal exported for testing
  */
-export function extractRedditTitle(
-  url: string,
-): { title: string; author: string } | undefined {
+export function extractRedditTitle(url: string): { title: string; author: string } | undefined {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -18,11 +16,7 @@ export function extractRedditTitle(
   }
 
   const host = parsed.hostname;
-  if (
-    host !== "reddit.com" &&
-    host !== "www.reddit.com" &&
-    host !== "old.reddit.com"
-  ) {
+  if (host !== 'reddit.com' && host !== 'www.reddit.com' && host !== 'old.reddit.com') {
     return undefined;
   }
 
@@ -30,11 +24,11 @@ export function extractRedditTitle(
   if (!match) {
     const subMatch = /^\/r\/([^/]+)/.exec(parsed.pathname);
     if (subMatch) {
-      return { title: `r/${subMatch[1]}`, author: "" };
+      return { title: `r/${subMatch[1]}`, author: '' };
     }
     const userMatch = /^\/user\/([^/]+)/.exec(parsed.pathname);
     if (userMatch) {
-      return { title: `u/${userMatch[1]}`, author: "" };
+      return { title: `u/${userMatch[1]}`, author: '' };
     }
     return undefined;
   }
@@ -46,7 +40,7 @@ export function extractRedditTitle(
     .split(/[-_\s]+/)
     .filter((w) => w.length > 0)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+    .join(' ');
 
   return title ? { title, author: `r/${subreddit}` } : undefined;
 }
@@ -67,7 +61,7 @@ export function extractUrlTitle(url: string): string {
   }
 
   const segments = parsed.pathname
-    .split("/")
+    .split('/')
     .map((s) => decodeURIComponent(s))
     .filter(Boolean);
 
@@ -75,12 +69,12 @@ export function extractUrlTitle(url: string): string {
 
   for (const seg of segments) {
     // Strip query-like suffixes that leak into path segments
-    const cleaned = seg.replace(/[?=&].*/, "");
+    const cleaned = seg.replace(/[?=&].*/, '');
     const words = cleaned.split(/[-_\s]+/).filter((w) => w.length > 0);
     if (words.length < 2) {
       continue;
     }
-    if (words.join("").length < 10) {
+    if (words.join('').length < 10) {
       continue;
     }
 
@@ -97,5 +91,5 @@ export function extractUrlTitle(url: string): string {
     .split(/[-_\s]+/)
     .filter((w) => w.length > 0)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+    .join(' ');
 }

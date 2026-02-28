@@ -13,6 +13,7 @@ export function createPill(title: string, favicon: string, href: string, author 
   const pill = document.createElement('a');
   pill.className = 'link-mention external-link';
   pill.href = href;
+  pill.title = href;
   pill.setAttribute('target', '_blank');
   pill.setAttribute('rel', 'noopener');
 

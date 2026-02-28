@@ -9,6 +9,7 @@ describe('createPill', () => {
     expect((pill as HTMLAnchorElement).href).toBe('https://example.com/');
     expect(pill.getAttribute('target')).toBe('_blank');
     expect(pill.getAttribute('rel')).toBe('noopener');
+    expect(pill.getAttribute('title')).toBe('https://example.com');
   });
 
   it('includes a favicon img when favicon is provided', () => {

@@ -36,6 +36,7 @@ class LinkMentionWidget extends WidgetType {
     const pill = document.createElement('a');
     pill.className = 'link-mention external-link';
     pill.href = this.url;
+    pill.title = this.url;
     pill.setAttribute('target', '_blank');
     pill.setAttribute('rel', 'noopener');
 
