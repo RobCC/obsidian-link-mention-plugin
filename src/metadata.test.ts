@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
 	arrayBufferToBase64,
 	getContentType,
-	fetchOembedTitle,
+	fetchOembed,
 	normalizeUrl,
 	getCachedMetadata,
 	fetchLinkMetadata,
@@ -232,24 +232,24 @@ describe("extractGithubTitle", () => {
 	});
 });
 
-describe("fetchOembedTitle", () => {
+describe("fetchOembed", () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 	});
 
-	it("returns title for a YouTube watch URL", async () => {
+	it("returns title and author for a YouTube watch URL", async () => {
 		mockRequestUrl.mockResolvedValue({
-			json: { title: "My Video Title" },
+			json: { title: "My Video Title", author_name: "Channel Name" },
 			text: "",
 			headers: {},
 			arrayBuffer: new ArrayBuffer(0),
 			status: 200,
 		});
 
-		const title = await fetchOembedTitle(
+		const result = await fetchOembed(
 			"https://www.youtube.com/watch?v=abc123"
 		);
-		expect(title).toBe("My Video Title");
+		expect(result).toEqual({ title: "My Video Title", author: "Channel Name" });
 		expect(mockRequestUrl).toHaveBeenCalledWith(
 			expect.objectContaining({
 				url: expect.stringContaining("youtube.com/oembed"),
@@ -257,45 +257,60 @@ describe("fetchOembedTitle", () => {
 		);
 	});
 
-	it("returns title for a youtu.be short URL", async () => {
+	it("returns empty author when author_name is missing", async () => {
 		mockRequestUrl.mockResolvedValue({
-			json: { title: "Short URL Video" },
+			json: { title: "No Author Video" },
 			text: "",
 			headers: {},
 			arrayBuffer: new ArrayBuffer(0),
 			status: 200,
 		});
 
-		const title = await fetchOembedTitle("https://youtu.be/abc123");
-		expect(title).toBe("Short URL Video");
+		const result = await fetchOembed(
+			"https://www.youtube.com/watch?v=abc123"
+		);
+		expect(result).toEqual({ title: "No Author Video", author: "" });
 	});
 
-	it("returns title for a Vimeo URL", async () => {
+	it("returns title and author for a youtu.be short URL", async () => {
 		mockRequestUrl.mockResolvedValue({
-			json: { title: "Vimeo Video" },
+			json: { title: "Short URL Video", author_name: "Short Channel" },
 			text: "",
 			headers: {},
 			arrayBuffer: new ArrayBuffer(0),
 			status: 200,
 		});
 
-		const title = await fetchOembedTitle("https://vimeo.com/123456");
-		expect(title).toBe("Vimeo Video");
+		const result = await fetchOembed("https://youtu.be/abc123");
+		expect(result).toEqual({ title: "Short URL Video", author: "Short Channel" });
+	});
+
+	it("returns title and author for a Vimeo URL", async () => {
+		mockRequestUrl.mockResolvedValue({
+			json: { title: "Vimeo Video", author_name: "Vimeo Creator" },
+			text: "",
+			headers: {},
+			arrayBuffer: new ArrayBuffer(0),
+			status: 200,
+		});
+
+		const result = await fetchOembed("https://vimeo.com/123456");
+		expect(result).toEqual({ title: "Vimeo Video", author: "Vimeo Creator" });
 	});
 
 	it("returns undefined for non-oEmbed URLs", async () => {
-		const title = await fetchOembedTitle("https://github.com");
-		expect(title).toBeUndefined();
+		const result = await fetchOembed("https://github.com");
+		expect(result).toBeUndefined();
 		expect(mockRequestUrl).not.toHaveBeenCalled();
 	});
 
 	it("returns undefined when oEmbed request fails", async () => {
 		mockRequestUrl.mockRejectedValue(new Error("Network error"));
 
-		const title = await fetchOembedTitle(
+		const result = await fetchOembed(
 			"https://www.youtube.com/watch?v=abc123"
 		);
-		expect(title).toBeUndefined();
+		expect(result).toBeUndefined();
 	});
 });
 

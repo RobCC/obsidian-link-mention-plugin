@@ -1,11 +1,12 @@
 body {
-  --link-mention-gap: 4px;
-  --link-mention-padding: 1px 2px;
-  --link-mention-radius: 2px;
+  --link-mention-gap: 0.25em;
+  --link-author-gap: 0.5em;
+  --link-mention-padding: 0.0625em 0.125em;
+  --link-mention-radius: 0.125em;
   --link-mention-background: var(--background-secondary);
   --link-mention-border: 1px solid var(--background-modifier-border);
   --link-mention-background-hover: var(--background-modifier-hover);
-  --link-mention-favicon-size: 14px;
+  --link-mention-favicon-size: 0.875em;
   --link-mention-text-color: var(--text-normal);
   --link-mention-underline-color: color-mix(
     in srgb,
@@ -13,22 +14,6 @@ body {
     transparent 70%
   );
 }
-
-/* .link-mention {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--link-mention-gap);
-  padding: var(--link-mention-padding);
-  border-radius: var(--link-mention-radius);
-  background-color: var(--link-mention-background);
-  border: var(--link-mention-border);
-  cursor: pointer;
-  text-decoration: none;
-  vertical-align: baseline;
-  line-height: 1.4;
-  top: 2px;
-  position: relative;
-} */
 
 .link-mention {
   border-radius: var(--link-mention-radius);
@@ -57,7 +42,7 @@ body.link-mention-hide-arrow .link-mention + * + .external-link {
 
 .link-mention:hover {
   background-color: var(--link-mention-background-hover);
-  box-shadow: 0 0 0 3px var(--link-mention-background-hover);
+  box-shadow: 0 0 0 0.1875em var(--link-mention-background-hover);
   text-decoration: none;
 }
 
@@ -80,7 +65,7 @@ body.link-mention-hide-arrow .link-mention + * + .external-link {
 
 .link-mention-author {
   color: var(--text-muted);
-  margin-right: var(--link-mention-gap);
+  margin-right: var(--link-author-gap);
 }
 
 .link-mention-title {
@@ -88,6 +73,6 @@ body.link-mention-hide-arrow .link-mention + * + .external-link {
   color: var(--link-mention-text-color);
   text-decoration: none;
   text-decoration-color: var(--link-mention-underline-color);
-  text-underline-offset: 2px;
+  text-underline-offset: 0.125em;
   text-decoration-line: var(--link-external-decoration);
 }

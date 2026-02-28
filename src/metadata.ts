@@ -157,9 +157,9 @@ const OEMBED_ENDPOINTS: { pattern: RegExp; endpoint: string }[] = [
  *
  * @internal exported for testing
  */
-export async function fetchOembedTitle(
+export async function fetchOembed(
   url: string,
-): Promise<string | undefined> {
+): Promise<{ title: string; author: string } | undefined> {
   for (const { pattern, endpoint } of OEMBED_ENDPOINTS) {
     if (pattern.test(url)) {
       try {
@@ -168,7 +168,9 @@ export async function fetchOembedTitle(
           method: "GET",
         });
         const title = response.json?.title?.trim();
-        return title || undefined;
+        if (!title) return undefined;
+        const author = response.json?.author_name?.trim() ?? "";
+        return { title, author };
       } catch {
         return undefined;
       }
@@ -187,10 +189,10 @@ async function doFetch(url: string): Promise<LinkMetadata> {
   let doc: Document | null = null;
 
   // Try oEmbed first for supported sites (avoids downloading heavy HTML)
-  const oembedTitle = await fetchOembedTitle(url);
-  if (oembedTitle) {
+  const oembed = await fetchOembed(url);
+  if (oembed) {
     const favicon = fetchFavicon(url, null);
-    return { title: oembedTitle, favicon, author: "" };
+    return { title: oembed.title, favicon, author: oembed.author };
   }
 
   // Fetch the page HTML — let errors propagate so callers can
