@@ -453,7 +453,7 @@ describe("fetchLinkMetadata", () => {
 
 		expect(a).toBe(b);
 		const pageFetches = mockRequestUrl.mock.calls.filter(
-			(args) => args[0]?.url === url
+			(args) => typeof args[0] === "object" && args[0]?.url === url
 		);
 		expect(pageFetches).toHaveLength(1);
 	});
@@ -478,7 +478,7 @@ describe("fetchLinkMetadata", () => {
 		const meta = await fetchLinkMetadata(url);
 		expect(meta.title).toBe("Cached");
 		const pageFetches = mockRequestUrl.mock.calls.filter(
-			(args) => args[0]?.url === url
+			(args) => typeof args[0] === "object" && args[0]?.url === url
 		);
 		expect(pageFetches).toHaveLength(0);
 	});
@@ -509,7 +509,7 @@ describe("fetchLinkMetadata", () => {
 		expect(meta.title).toBe("Normalized");
 
 		const pageFetch = mockRequestUrl.mock.calls.find(
-			(args) => args[0]?.url === "https://www.example.com/"
+			(args) => typeof args[0] === "object" && args[0]?.url === "https://www.example.com/"
 		);
 		expect(pageFetch).toBeDefined();
 	});
