@@ -122,17 +122,45 @@ export function cursorInRange(
 }
 
 /**
- * Returns the current in-editor search query (Ctrl+F) if the search
- * panel is open, or `null` otherwise. Reads from the DOM because
- * Obsidian's search does not expose the query through the CM state.
+ * Returns the document range of the currently-selected Ctrl+F search
+ * match, or `null` if the search panel is closed or has no results.
+ *
+ * Reads the query from the search input and the "X / Y" counter from
+ * `.document-search-count`, then performs its own case-insensitive
+ * text search to map the index to a document position.
  */
-function getActiveSearchQuery(view: EditorView): string | null {
+function getSelectedSearchRange(
+  view: EditorView,
+): { from: number; to: number } | null {
   const leaf = view.dom.closest(".workspace-leaf-content");
   if (!leaf) return null;
+
   const input = leaf.querySelector(
     ".document-search-container input",
   ) as HTMLInputElement | null;
-  return input?.value || null;
+  const query = input?.value;
+  if (!query) return null;
+
+  const counter = leaf.querySelector(
+    ".document-search-count",
+  ) as HTMLElement | null;
+  const m = counter?.textContent?.match(/(\d+)\s*\/\s*(\d+)/);
+  if (!m) return null;
+
+  const currentIndex = parseInt(m[1], 10) - 1; // 0-based
+  if (currentIndex < 0) return null;
+
+  const text = view.state.doc.toString().toLowerCase();
+  const lowerQuery = query.toLowerCase();
+
+  let idx = 0;
+  for (let i = 0; i <= currentIndex; i++) {
+    const pos = text.indexOf(lowerQuery, idx);
+    if (pos === -1) return null;
+    if (i === currentIndex) return { from: pos, to: pos + query.length };
+    idx = pos + 1;
+  }
+  return null;
 }
 
 /**
@@ -152,7 +180,7 @@ function buildDecorations(
   const decorations: Range<Decoration>[] = [];
   const links: KnownLink[] = [];
   const doc = view.state.doc;
-  const searchQuery = getActiveSearchQuery(view)?.toLowerCase() ?? null;
+  const selectedSearch = getSelectedSearchRange(view);
 
   // Scan the visible text with a regex (syntax tree node types vary
   // across Obsidian versions, so regex is more reliable).
@@ -173,9 +201,9 @@ function buildDecorations(
         continue;
       }
 
-      // If the in-editor search (Ctrl+F) query matches text inside
-      // this link, collapse the pill so the search highlight is visible.
-      if (searchQuery && match[0].toLowerCase().includes(searchQuery)) {
+      // Collapse only the pill containing the currently-selected
+      // Ctrl+F search result (not all pills matching the query).
+      if (selectedSearch && selectedSearch.from >= matchFrom && selectedSearch.from < matchTo) {
         continue;
       }
 
@@ -207,15 +235,14 @@ function rebuildFromKnown(
   onFetchComplete: () => void,
 ): DecorationSet {
   const decorations: Range<Decoration>[] = [];
-  const searchQuery = getActiveSearchQuery(view)?.toLowerCase() ?? null;
-  const doc = view.state.doc;
+  const selectedSearch = getSelectedSearchRange(view);
 
   for (const { from, to, url } of knownLinks) {
     if (cursorInRange(view.state.selection, from, to)) {
       continue;
     }
 
-    if (searchQuery && doc.sliceString(from, to).toLowerCase().includes(searchQuery)) {
+    if (selectedSearch && selectedSearch.from >= from && selectedSearch.from < to) {
       continue;
     }
 
@@ -244,9 +271,12 @@ export const livePreviewExtension = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
     hasPendingFetches = false;
+    searchNeedsRebuild = false;
     knownLinks: KnownLink[] = [];
     dispatchTimer: ReturnType<typeof setTimeout> | null = null;
     private searchObserver: MutationObserver | null = null;
+    private searchInput: HTMLInputElement | null = null;
+    private searchDebounce: ReturnType<typeof setTimeout> | null = null;
     private view: EditorView;
 
     constructor(view: EditorView) {
@@ -256,26 +286,57 @@ export const livePreviewExtension = ViewPlugin.fromClass(
       this.decorations = result.decorations;
       this.knownLinks = result.links;
 
-      // Obsidian's in-editor Ctrl+F search bar is inserted/removed
-      // dynamically in the workspace leaf. Watch for it so we can
-      // rebuild decorations when the search query changes.
+      // Watch the workspace leaf for the search container appearing or
+      // disappearing. When it appears, attach input/keydown listeners
+      // to react to query changes and result navigation (Enter/arrows).
       const leaf = view.dom.closest(".workspace-leaf-content");
       if (leaf) {
         this.searchObserver = new MutationObserver(() => {
-          view.dispatch();
+          const input = leaf.querySelector(
+            ".document-search-container input",
+          ) as HTMLInputElement | null;
+
+          if (input && input !== this.searchInput) {
+            this.detachSearchInput();
+            this.searchInput = input;
+            this.searchInput.addEventListener("input", this.scheduleSearchRebuild);
+            this.searchInput.addEventListener("keydown", this.scheduleSearchRebuild);
+            this.scheduleSearchRebuild();
+          } else if (!input && this.searchInput) {
+            this.detachSearchInput();
+            this.scheduleSearchRebuild();
+          }
         });
-        this.searchObserver.observe(leaf, {
-          childList: true,
-          subtree: true,
-          characterData: true,
-          attributes: true,
-          attributeFilter: ["value"],
-        });
+        this.searchObserver.observe(leaf, { childList: true, subtree: true });
+      }
+    }
+
+    /**
+     * Debounced trigger for search-related rebuilds. Waits briefly so
+     * Obsidian has time to update the "X / Y" counter after keydown
+     * events (Enter, arrows) before we read it.
+     */
+    private scheduleSearchRebuild = (): void => {
+      if (this.searchDebounce) clearTimeout(this.searchDebounce);
+      this.searchDebounce = setTimeout(() => {
+        this.searchDebounce = null;
+        this.searchNeedsRebuild = true;
+        this.view.dispatch();
+      }, 30);
+    };
+
+    private detachSearchInput(): void {
+      if (this.searchInput) {
+        this.searchInput.removeEventListener("input", this.scheduleSearchRebuild);
+        this.searchInput.removeEventListener("keydown", this.scheduleSearchRebuild);
+        this.searchInput = null;
       }
     }
 
     destroy(): void {
       this.searchObserver?.disconnect();
+      this.detachSearchInput();
+      if (this.searchDebounce) clearTimeout(this.searchDebounce);
     }
 
     /**
@@ -299,13 +360,13 @@ export const livePreviewExtension = ViewPlugin.fromClass(
       if (update.docChanged || update.viewportChanged || selectionMoved) {
         // Full rescan needed — document, viewport, or selection changed
         this.hasPendingFetches = false;
+        this.searchNeedsRebuild = false;
         const result = buildDecorations(update.view, onFetch);
         this.decorations = result.decorations;
         this.knownLinks = result.links;
-      } else if (this.hasPendingFetches || getActiveSearchQuery(update.view)) {
-        // Rebuild when fetches pending or search is active — the search
-        // query may match text inside pill ranges, requiring collapse.
+      } else if (this.hasPendingFetches || this.searchNeedsRebuild) {
         this.hasPendingFetches = false;
+        this.searchNeedsRebuild = false;
         this.decorations = rebuildFromKnown(
           update.view,
           this.knownLinks,
