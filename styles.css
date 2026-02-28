@@ -6,7 +6,7 @@ body {
   --link-mention-background: var(--background-secondary);
   --link-mention-border: 1px solid var(--background-modifier-border);
   --link-mention-background-hover: var(--background-modifier-hover);
-  --link-mention-favicon-size: 0.9375em;
+  --link-mention-favicon-size: 1em;
   --link-mention-text-color: var(--text-normal);
   --link-mention-underline-color: color-mix(
     in srgb,
