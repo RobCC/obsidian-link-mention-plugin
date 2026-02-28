@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractUrlTitle } from "./url";
+import { extractRedditTitle, extractUrlTitle } from "./url";
 
 describe("extractUrlTitle", () => {
   it("extracts title from Amazon product URL", () => {
@@ -58,5 +58,58 @@ describe("extractUrlTitle", () => {
 
   it("returns the raw string for unparseable input", () => {
     expect(extractUrlTitle("not a url")).toBe("not a url");
+  });
+});
+
+describe("extractRedditTitle", () => {
+  it("extracts title and subreddit from a post URL", () => {
+    expect(
+      extractRedditTitle(
+        "https://www.reddit.com/r/ClaudeAI/comments/1oivjvm/claude_code_is_a_beast_tips_from_6_months_of/"
+      )
+    ).toEqual({
+      title: "Claude Code Is A Beast Tips From 6 Months Of",
+      author: "r/ClaudeAI",
+    });
+  });
+
+  it("handles old.reddit.com", () => {
+    expect(
+      extractRedditTitle(
+        "https://old.reddit.com/r/programming/comments/abc123/some_cool_project/"
+      )
+    ).toEqual({
+      title: "Some Cool Project",
+      author: "r/programming",
+    });
+  });
+
+  it("handles bare reddit.com without www", () => {
+    expect(
+      extractRedditTitle(
+        "https://reddit.com/r/vim/comments/abc123/a-nice-vim-trick/"
+      )
+    ).toEqual({
+      title: "A Nice Vim Trick",
+      author: "r/vim",
+    });
+  });
+
+  it("returns undefined for subreddit listing", () => {
+    expect(
+      extractRedditTitle("https://www.reddit.com/r/ClaudeAI/")
+    ).toBeUndefined();
+  });
+
+  it("returns undefined for Reddit homepage", () => {
+    expect(
+      extractRedditTitle("https://www.reddit.com/")
+    ).toBeUndefined();
+  });
+
+  it("returns undefined for non-Reddit URLs", () => {
+    expect(
+      extractRedditTitle("https://example.com/r/test/comments/123/slug/")
+    ).toBeUndefined();
   });
 });

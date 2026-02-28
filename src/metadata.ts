@@ -6,7 +6,7 @@ import {
   extractGithubTitle,
   extractOgTitle,
 } from "./parsers/html";
-import { extractUrlTitle } from "./parsers/url";
+import { extractRedditTitle, extractUrlTitle } from "./parsers/url";
 
 /** Resolved metadata for an external link, used to render mention pills. */
 export interface LinkMetadata {
@@ -21,17 +21,22 @@ export interface LinkMetadata {
 const cache = new Map<string, LinkMetadata>();
 const inflight = new Map<string, Promise<LinkMetadata>>();
 
-/** Maximum bytes of HTML to parse — only the `<head>` matters. */
+/** Maximum bytes of HTML to parse to prevent fetching the whole page. Only the `<head>` matters. */
 const MAX_HTML_BYTES = 51200;
 
 /** Maximum concurrent `doFetch` calls to avoid overwhelming the network. */
-const MAX_CONCURRENT = 3;
+let maxConcurrent = 4;
 let activeCount = 0;
 const waiting: (() => void)[] = [];
 
+/** Updates the maximum number of concurrent fetches at runtime. */
+export function setMaxConcurrent(n: number): void {
+  maxConcurrent = n;
+}
+
 /** Acquires a fetch slot, waiting if the concurrency limit is reached. */
 function acquireSlot(): Promise<void> {
-  if (activeCount < MAX_CONCURRENT) {
+  if (activeCount < maxConcurrent) {
     activeCount++;
     return Promise.resolve();
   }
@@ -214,6 +219,13 @@ async function doFetch(url: string): Promise<LinkMetadata> {
     const hostname = new URL(url).hostname;
     if (hostname === "github.com" || hostname === "www.github.com") {
       title = extractGithubTitle(doc);
+    }
+    if (hostname === "reddit.com" || hostname === "www.reddit.com" || hostname === "old.reddit.com") {
+      const reddit = extractRedditTitle(url);
+      if (reddit) {
+        const favicon = fetchFavicon(url, doc);
+        return { title: reddit.title, favicon, author: reddit.author };
+      }
     }
   } catch {
     /* ignore parse errors, fall through to generic */
