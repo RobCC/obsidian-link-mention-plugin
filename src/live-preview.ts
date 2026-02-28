@@ -105,8 +105,14 @@ class LinkMentionWidget extends WidgetType {
   }
 }
 
-/** Regex for empty markdown links `[](url)`. Module-level to avoid re-creation. */
-const EMPTY_LINK_RE = /\[]\((https?:\/\/[^)\r\n]+)\)/g;
+/**
+ * Regex for empty markdown links `[](url)`. Supports one level of balanced
+ * parentheses so that Wikipedia-style URLs like `Obsidian_(software)` are
+ * captured in full.
+ *
+ * @internal exported for testing
+ */
+export const EMPTY_LINK_RE = /\[]\((https?:\/\/(?:[^()\r\n]|\([^()\r\n]*\))+)\)/g;
 
 /** A link position found during a full scan. */
 interface KnownLink {
