@@ -1,601 +1,558 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-	arrayBufferToBase64,
-	getContentType,
-	fetchOembed,
-	normalizeUrl,
-	getCachedMetadata,
-	fetchLinkMetadata,
-} from "./metadata";
+  arrayBufferToBase64,
+  getContentType,
+  fetchOembed,
+  normalizeUrl,
+  getCachedMetadata,
+  fetchLinkMetadata,
+} from './metadata';
 import {
-	extractFaviconUrl,
-	extractOgTitle,
-	extractOgSiteName,
-	extractAuthor,
-	extractDocTitle,
-	extractGithubTitle,
-} from "./parsers/html";
+  extractFaviconUrl,
+  extractOgTitle,
+  extractOgSiteName,
+  extractAuthor,
+  extractDocTitle,
+  extractGithubTitle,
+} from './parsers/html';
 
-import { requestUrl } from "obsidian";
+import { requestUrl } from 'obsidian';
 const mockRequestUrl = vi.mocked(requestUrl);
 
-describe("arrayBufferToBase64", () => {
-	it("encodes an ArrayBuffer to base64 and roundtrips correctly", () => {
-		const text = "Hello, world!";
-		const encoder = new TextEncoder();
-		const buffer = encoder.encode(text).buffer;
-		const base64 = arrayBufferToBase64(buffer);
-		expect(atob(base64)).toBe(text);
-	});
+describe('arrayBufferToBase64', () => {
+  it('encodes an ArrayBuffer to base64 and roundtrips correctly', () => {
+    const text = 'Hello, world!';
+    const encoder = new TextEncoder();
+    const buffer = encoder.encode(text).buffer;
+    const base64 = arrayBufferToBase64(buffer);
+    expect(atob(base64)).toBe(text);
+  });
 
-	it("handles an empty buffer", () => {
-		const buffer = new ArrayBuffer(0);
-		expect(arrayBufferToBase64(buffer)).toBe("");
-	});
+  it('handles an empty buffer', () => {
+    const buffer = new ArrayBuffer(0);
+    expect(arrayBufferToBase64(buffer)).toBe('');
+  });
 });
 
-describe("getContentType", () => {
-	it("returns content-type from lowercase header", () => {
-		expect(getContentType({ "content-type": "image/png" })).toBe("image/png");
-	});
+describe('getContentType', () => {
+  it('returns content-type from lowercase header', () => {
+    expect(getContentType({ 'content-type': 'image/png' })).toBe('image/png');
+  });
 
-	it("returns content-type from mixed-case header", () => {
-		expect(getContentType({ "Content-Type": "image/jpeg" })).toBe(
-			"image/jpeg"
-		);
-	});
+  it('returns content-type from mixed-case header', () => {
+    expect(getContentType({ 'Content-Type': 'image/jpeg' })).toBe('image/jpeg');
+  });
 
-	it("strips charset parameter", () => {
-		expect(
-			getContentType({ "Content-Type": "text/html; charset=utf-8" })
-		).toBe("text/html");
-	});
+  it('strips charset parameter', () => {
+    expect(getContentType({ 'Content-Type': 'text/html; charset=utf-8' })).toBe('text/html');
+  });
 
-	it("defaults to image/png when header is missing", () => {
-		expect(getContentType({})).toBe("image/png");
-	});
+  it('defaults to image/png when header is missing', () => {
+    expect(getContentType({})).toBe('image/png');
+  });
 });
 
-describe("extractFaviconUrl", () => {
-	it('extracts href from <link rel="icon">', () => {
-		const doc = makeDoc(
-			'<html><head><link rel="icon" href="/favicon.ico"></head></html>'
-		);
-		expect(extractFaviconUrl(doc, "https://example.com/page")).toBe(
-			"https://example.com/favicon.ico"
-		);
-	});
+describe('extractFaviconUrl', () => {
+  it('extracts href from <link rel="icon">', () => {
+    const doc = makeDoc('<html><head><link rel="icon" href="/favicon.ico"></head></html>');
+    expect(extractFaviconUrl(doc, 'https://example.com/page')).toBe(
+      'https://example.com/favicon.ico',
+    );
+  });
 
-	it("resolves a relative href against the page URL", () => {
-		const doc = makeDoc(
-			'<html><head><link rel="icon" href="img/icon.png"></head></html>'
-		);
-		expect(extractFaviconUrl(doc, "https://example.com/a/b")).toBe(
-			"https://example.com/a/img/icon.png"
-		);
-	});
+  it('resolves a relative href against the page URL', () => {
+    const doc = makeDoc('<html><head><link rel="icon" href="img/icon.png"></head></html>');
+    expect(extractFaviconUrl(doc, 'https://example.com/a/b')).toBe(
+      'https://example.com/a/img/icon.png',
+    );
+  });
 
-	it('matches <link rel="shortcut icon">', () => {
-		const doc = makeDoc(
-			'<html><head><link rel="shortcut icon" href="/si.ico"></head></html>'
-		);
-		expect(extractFaviconUrl(doc, "https://example.com")).toBe(
-			"https://example.com/si.ico"
-		);
-	});
+  it('matches <link rel="shortcut icon">', () => {
+    const doc = makeDoc('<html><head><link rel="shortcut icon" href="/si.ico"></head></html>');
+    expect(extractFaviconUrl(doc, 'https://example.com')).toBe('https://example.com/si.ico');
+  });
 
-	it('matches <link rel="apple-touch-icon">', () => {
-		const doc = makeDoc(
-			'<html><head><link rel="apple-touch-icon" href="/apple.png"></head></html>'
-		);
-		expect(extractFaviconUrl(doc, "https://example.com")).toBe(
-			"https://example.com/apple.png"
-		);
-	});
+  it('matches <link rel="apple-touch-icon">', () => {
+    const doc = makeDoc(
+      '<html><head><link rel="apple-touch-icon" href="/apple.png"></head></html>',
+    );
+    expect(extractFaviconUrl(doc, 'https://example.com')).toBe('https://example.com/apple.png');
+  });
 
-	it("returns null when no favicon link is present", () => {
-		const doc = makeDoc("<html><head></head></html>");
-		expect(extractFaviconUrl(doc, "https://example.com")).toBeNull();
-	});
+  it('returns null when no favicon link is present', () => {
+    const doc = makeDoc('<html><head></head></html>');
+    expect(extractFaviconUrl(doc, 'https://example.com')).toBeNull();
+  });
 });
 
 function makeDoc(html: string): Document {
-	return new DOMParser().parseFromString(html, "text/html");
+  return new DOMParser().parseFromString(html, 'text/html');
 }
 
-describe("extractOgTitle", () => {
-	it("extracts og:title content", () => {
-		const doc = makeDoc(
-			'<html><head><meta property="og:title" content="OG Title"></head></html>'
-		);
-		expect(extractOgTitle(doc)).toBe("OG Title");
-	});
+describe('extractOgTitle', () => {
+  it('extracts og:title content', () => {
+    const doc = makeDoc('<html><head><meta property="og:title" content="OG Title"></head></html>');
+    expect(extractOgTitle(doc)).toBe('OG Title');
+  });
 
-	it("returns undefined when og:title is missing", () => {
-		const doc = makeDoc("<html><head></head></html>");
-		expect(extractOgTitle(doc)).toBeUndefined();
-	});
+  it('returns undefined when og:title is missing', () => {
+    const doc = makeDoc('<html><head></head></html>');
+    expect(extractOgTitle(doc)).toBeUndefined();
+  });
 
-	it("returns undefined for empty content", () => {
-		const doc = makeDoc(
-			'<html><head><meta property="og:title" content=""></head></html>'
-		);
-		expect(extractOgTitle(doc)).toBeUndefined();
-	});
+  it('returns undefined for empty content', () => {
+    const doc = makeDoc('<html><head><meta property="og:title" content=""></head></html>');
+    expect(extractOgTitle(doc)).toBeUndefined();
+  });
 });
 
-describe("extractOgSiteName", () => {
-	it("extracts og:site_name content", () => {
-		const doc = makeDoc(
-			'<html><head><meta property="og:site_name" content="GitHub"></head></html>'
-		);
-		expect(extractOgSiteName(doc)).toBe("GitHub");
-	});
+describe('extractOgSiteName', () => {
+  it('extracts og:site_name content', () => {
+    const doc = makeDoc(
+      '<html><head><meta property="og:site_name" content="GitHub"></head></html>',
+    );
+    expect(extractOgSiteName(doc)).toBe('GitHub');
+  });
 
-	it("returns undefined when og:site_name is missing", () => {
-		const doc = makeDoc("<html><head></head></html>");
-		expect(extractOgSiteName(doc)).toBeUndefined();
-	});
+  it('returns undefined when og:site_name is missing', () => {
+    const doc = makeDoc('<html><head></head></html>');
+    expect(extractOgSiteName(doc)).toBeUndefined();
+  });
 });
 
-describe("extractAuthor", () => {
-	it("extracts author content", () => {
-		const doc = makeDoc(
-			'<html><head><meta name="author" content="Example Author"></head></html>'
-		);
-		expect(extractAuthor(doc)).toBe("Example Author");
-	});
+describe('extractAuthor', () => {
+  it('extracts author content', () => {
+    const doc = makeDoc('<html><head><meta name="author" content="Example Author"></head></html>');
+    expect(extractAuthor(doc)).toBe('Example Author');
+  });
 
-	it("returns undefined when author is missing", () => {
-		const doc = makeDoc("<html><head></head></html>");
-		expect(extractAuthor(doc)).toBeUndefined();
-	});
+  it('returns undefined when author is missing', () => {
+    const doc = makeDoc('<html><head></head></html>');
+    expect(extractAuthor(doc)).toBeUndefined();
+  });
 
-	it("returns undefined for empty content", () => {
-		const doc = makeDoc(
-			'<html><head><meta name="author" content=""></head></html>'
-		);
-		expect(extractAuthor(doc)).toBeUndefined();
-	});
+  it('returns undefined for empty content', () => {
+    const doc = makeDoc('<html><head><meta name="author" content=""></head></html>');
+    expect(extractAuthor(doc)).toBeUndefined();
+  });
 });
 
-describe("extractDocTitle", () => {
-	it("returns the full title when no separator is present", () => {
-		const doc = makeDoc("<html><head><title>No separator</title></head></html>");
-		expect(extractDocTitle(doc)).toBe("No separator");
-	});
+describe('extractDocTitle', () => {
+  it('returns the full title when no separator is present', () => {
+    const doc = makeDoc('<html><head><title>No separator</title></head></html>');
+    expect(extractDocTitle(doc)).toBe('No separator');
+  });
 
-	it("splits on · and returns the first segment", () => {
-		const doc = makeDoc(
-			"<html><head><title>Home · Welcome to the site · Example</title></head></html>"
-		);
-		expect(extractDocTitle(doc)).toBe("Home");
-	});
+  it('splits on · and returns the first segment', () => {
+    const doc = makeDoc(
+      '<html><head><title>Home · Welcome to the site · Example</title></head></html>',
+    );
+    expect(extractDocTitle(doc)).toBe('Home');
+  });
 
-	it("splits on | and returns the first segment", () => {
-		const doc = makeDoc(
-			"<html><head><title>Title | Site</title></head></html>"
-		);
-		expect(extractDocTitle(doc)).toBe("Title");
-	});
+  it('splits on | and returns the first segment', () => {
+    const doc = makeDoc('<html><head><title>Title | Site</title></head></html>');
+    expect(extractDocTitle(doc)).toBe('Title');
+  });
 
-	it("splits on — (em dash) and returns the first segment", () => {
-		const doc = makeDoc(
-			"<html><head><title>Article — Blog</title></head></html>"
-		);
-		expect(extractDocTitle(doc)).toBe("Article");
-	});
+  it('splits on — (em dash) and returns the first segment', () => {
+    const doc = makeDoc('<html><head><title>Article — Blog</title></head></html>');
+    expect(extractDocTitle(doc)).toBe('Article');
+  });
 
-	it("does not split on en dash (too common in real content)", () => {
-		const doc = makeDoc(
-			"<html><head><title>Author Name – Article title | Site</title></head></html>"
-		);
-		expect(extractDocTitle(doc)).toBe("Author Name – Article title");
-	});
+  it('does not split on en dash (too common in real content)', () => {
+    const doc = makeDoc(
+      '<html><head><title>Author Name – Article title | Site</title></head></html>',
+    );
+    expect(extractDocTitle(doc)).toBe('Author Name – Article title');
+  });
 
-	it("does not split on hyphen (too common in real content)", () => {
-		const doc = makeDoc(
-			"<html><head><title>Example - some-project: A cool tool</title></head></html>"
-		);
-		expect(extractDocTitle(doc)).toBe("Example - some-project: A cool tool");
-	});
+  it('does not split on hyphen (too common in real content)', () => {
+    const doc = makeDoc(
+      '<html><head><title>Example - some-project: A cool tool</title></head></html>',
+    );
+    expect(extractDocTitle(doc)).toBe('Example - some-project: A cool tool');
+  });
 
-	it("returns undefined when title element is missing", () => {
-		const doc = makeDoc("<html><head></head></html>");
-		expect(extractDocTitle(doc)).toBeUndefined();
-	});
+  it('returns undefined when title element is missing', () => {
+    const doc = makeDoc('<html><head></head></html>');
+    expect(extractDocTitle(doc)).toBeUndefined();
+  });
 
-	it("returns undefined when title is empty", () => {
-		const doc = makeDoc("<html><head><title></title></head></html>");
-		expect(extractDocTitle(doc)).toBeUndefined();
-	});
+  it('returns undefined when title is empty', () => {
+    const doc = makeDoc('<html><head><title></title></head></html>');
+    expect(extractDocTitle(doc)).toBeUndefined();
+  });
 });
 
-describe("extractGithubTitle", () => {
-	it("returns og:title without description suffix", () => {
-		const doc = makeDoc(
-			'<html><head><meta property="og:title" content="acme/widgets: A widget library"><title>GitHub - acme/widgets: A widget library</title></head></html>'
-		);
-		expect(extractGithubTitle(doc)).toBe("widgets");
-	});
+describe('extractGithubTitle', () => {
+  it('returns og:title without description suffix', () => {
+    const doc = makeDoc(
+      '<html><head><meta property="og:title" content="acme/widgets: A widget library"><title>GitHub - acme/widgets: A widget library</title></head></html>',
+    );
+    expect(extractGithubTitle(doc)).toBe('widgets');
+  });
 
-	it("returns repo name when no colon is present", () => {
-		const doc = makeDoc(
-			'<html><head><meta property="og:title" content="acme/widgets"></head></html>'
-		);
-		expect(extractGithubTitle(doc)).toBe("widgets");
-	});
+  it('returns repo name when no colon is present', () => {
+    const doc = makeDoc(
+      '<html><head><meta property="og:title" content="acme/widgets"></head></html>',
+    );
+    expect(extractGithubTitle(doc)).toBe('widgets');
+  });
 
-	it("falls back to doc title when og:title is missing", () => {
-		const doc = makeDoc(
-			"<html><head><title>GitHub - acme/widgets: A widget library</title></head></html>"
-		);
-		expect(extractGithubTitle(doc)).toBe("widgets");
-	});
+  it('falls back to doc title when og:title is missing', () => {
+    const doc = makeDoc(
+      '<html><head><title>GitHub - acme/widgets: A widget library</title></head></html>',
+    );
+    expect(extractGithubTitle(doc)).toBe('widgets');
+  });
 
-	it("returns undefined when both og:title and doc title are missing", () => {
-		const doc = makeDoc("<html><head></head></html>");
-		expect(extractGithubTitle(doc)).toBeUndefined();
-	});
+  it('returns undefined when both og:title and doc title are missing', () => {
+    const doc = makeDoc('<html><head></head></html>');
+    expect(extractGithubTitle(doc)).toBeUndefined();
+  });
 });
 
-describe("fetchOembed", () => {
-	beforeEach(() => {
-		vi.resetAllMocks();
-	});
+describe('fetchOembed', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
 
-	it("returns title and author for a YouTube watch URL", async () => {
-		mockRequestUrl.mockResolvedValue({
-			json: { title: "My Video Title", author_name: "Channel Name" },
-			text: "",
-			headers: {},
-			arrayBuffer: new ArrayBuffer(0),
-			status: 200,
-		});
+  it('returns title and author for a YouTube watch URL', async () => {
+    mockRequestUrl.mockResolvedValue({
+      json: { title: 'My Video Title', author_name: 'Channel Name' },
+      text: '',
+      headers: {},
+      arrayBuffer: new ArrayBuffer(0),
+      status: 200,
+    });
 
-		const result = await fetchOembed(
-			"https://www.youtube.com/watch?v=abc123"
-		);
-		expect(result).toEqual({ title: "My Video Title", author: "Channel Name" });
-		expect(mockRequestUrl).toHaveBeenCalledWith(
-			expect.objectContaining({
-				url: expect.stringContaining("youtube.com/oembed"),
-			})
-		);
-	});
+    const result = await fetchOembed('https://www.youtube.com/watch?v=abc123');
+    expect(result).toEqual({ title: 'My Video Title', author: 'Channel Name' });
+    expect(mockRequestUrl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: expect.stringContaining('youtube.com/oembed'),
+      }),
+    );
+  });
 
-	it("returns empty author when author_name is missing", async () => {
-		mockRequestUrl.mockResolvedValue({
-			json: { title: "No Author Video" },
-			text: "",
-			headers: {},
-			arrayBuffer: new ArrayBuffer(0),
-			status: 200,
-		});
+  it('returns empty author when author_name is missing', async () => {
+    mockRequestUrl.mockResolvedValue({
+      json: { title: 'No Author Video' },
+      text: '',
+      headers: {},
+      arrayBuffer: new ArrayBuffer(0),
+      status: 200,
+    });
 
-		const result = await fetchOembed(
-			"https://www.youtube.com/watch?v=abc123"
-		);
-		expect(result).toEqual({ title: "No Author Video", author: "" });
-	});
+    const result = await fetchOembed('https://www.youtube.com/watch?v=abc123');
+    expect(result).toEqual({ title: 'No Author Video', author: '' });
+  });
 
-	it("returns title and author for a youtu.be short URL", async () => {
-		mockRequestUrl.mockResolvedValue({
-			json: { title: "Short URL Video", author_name: "Short Channel" },
-			text: "",
-			headers: {},
-			arrayBuffer: new ArrayBuffer(0),
-			status: 200,
-		});
+  it('returns title and author for a youtu.be short URL', async () => {
+    mockRequestUrl.mockResolvedValue({
+      json: { title: 'Short URL Video', author_name: 'Short Channel' },
+      text: '',
+      headers: {},
+      arrayBuffer: new ArrayBuffer(0),
+      status: 200,
+    });
 
-		const result = await fetchOembed("https://youtu.be/abc123");
-		expect(result).toEqual({ title: "Short URL Video", author: "Short Channel" });
-	});
+    const result = await fetchOembed('https://youtu.be/abc123');
+    expect(result).toEqual({ title: 'Short URL Video', author: 'Short Channel' });
+  });
 
-	it("returns title and author for a Vimeo URL", async () => {
-		mockRequestUrl.mockResolvedValue({
-			json: { title: "Vimeo Video", author_name: "Vimeo Creator" },
-			text: "",
-			headers: {},
-			arrayBuffer: new ArrayBuffer(0),
-			status: 200,
-		});
+  it('returns title and author for a Vimeo URL', async () => {
+    mockRequestUrl.mockResolvedValue({
+      json: { title: 'Vimeo Video', author_name: 'Vimeo Creator' },
+      text: '',
+      headers: {},
+      arrayBuffer: new ArrayBuffer(0),
+      status: 200,
+    });
 
-		const result = await fetchOembed("https://vimeo.com/123456");
-		expect(result).toEqual({ title: "Vimeo Video", author: "Vimeo Creator" });
-	});
+    const result = await fetchOembed('https://vimeo.com/123456');
+    expect(result).toEqual({ title: 'Vimeo Video', author: 'Vimeo Creator' });
+  });
 
-	it("returns undefined for non-oEmbed URLs", async () => {
-		const result = await fetchOembed("https://github.com");
-		expect(result).toBeUndefined();
-		expect(mockRequestUrl).not.toHaveBeenCalled();
-	});
+  it('returns undefined for non-oEmbed URLs', async () => {
+    const result = await fetchOembed('https://github.com');
+    expect(result).toBeUndefined();
+    expect(mockRequestUrl).not.toHaveBeenCalled();
+  });
 
-	it("returns undefined when oEmbed request fails", async () => {
-		mockRequestUrl.mockRejectedValue(new Error("Network error"));
+  it('returns undefined when oEmbed request fails', async () => {
+    mockRequestUrl.mockRejectedValue(new Error('Network error'));
 
-		const result = await fetchOembed(
-			"https://www.youtube.com/watch?v=abc123"
-		);
-		expect(result).toBeUndefined();
-	});
+    const result = await fetchOembed('https://www.youtube.com/watch?v=abc123');
+    expect(result).toBeUndefined();
+  });
 });
 
-describe("normalizeUrl", () => {
-	it("adds trailing slash to bare domain", () => {
-		expect(normalizeUrl("https://example.com")).toBe(
-			"https://example.com/"
-		);
-	});
+describe('normalizeUrl', () => {
+  it('adds trailing slash to bare domain', () => {
+    expect(normalizeUrl('https://example.com')).toBe('https://example.com/');
+  });
 
-	it("preserves subdomains", () => {
-		expect(normalizeUrl("https://docs.google.com")).toBe(
-			"https://docs.google.com/"
-		);
-	});
+  it('preserves subdomains', () => {
+    expect(normalizeUrl('https://docs.google.com')).toBe('https://docs.google.com/');
+  });
 
-	it("preserves www. when already present", () => {
-		expect(normalizeUrl("https://www.google.com")).toBe(
-			"https://www.google.com/"
-		);
-	});
+  it('preserves www. when already present', () => {
+    expect(normalizeUrl('https://www.google.com')).toBe('https://www.google.com/');
+  });
 
-	it("preserves http:// protocol", () => {
-		expect(normalizeUrl("http://example.com")).toBe(
-			"http://example.com/"
-		);
-	});
+  it('preserves http:// protocol', () => {
+    expect(normalizeUrl('http://example.com')).toBe('http://example.com/');
+  });
 
-	it("preserves path, query, and fragment", () => {
-		expect(normalizeUrl("https://example.com/path?q=1#frag")).toBe(
-			"https://example.com/path?q=1#frag"
-		);
-	});
+  it('preserves path, query, and fragment', () => {
+    expect(normalizeUrl('https://example.com/path?q=1#frag')).toBe(
+      'https://example.com/path?q=1#frag',
+    );
+  });
 
-	it("returns the input as-is for unparseable strings", () => {
-		expect(normalizeUrl("not a url")).toBe("not a url");
-	});
+  it('returns the input as-is for unparseable strings', () => {
+    expect(normalizeUrl('not a url')).toBe('not a url');
+  });
 });
 
-describe("getCachedMetadata", () => {
-	it("returns undefined for an uncached URL", () => {
-		expect(getCachedMetadata("https://never-fetched.example")).toBeUndefined();
-	});
+describe('getCachedMetadata', () => {
+  it('returns undefined for an uncached URL', () => {
+    expect(getCachedMetadata('https://never-fetched.example')).toBeUndefined();
+  });
 });
 
-describe("fetchLinkMetadata", () => {
-	beforeEach(() => {
-		vi.resetAllMocks();
-	});
+describe('fetchLinkMetadata', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
 
-	it("extracts title from og:title", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: '<html><head><meta property="og:title" content="OG Title"></head></html>',
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('extracts title from og:title', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><meta property="og:title" content="OG Title"></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://www.og-title.example");
-		expect(meta.title).toBe("OG Title");
-	});
+    const meta = await fetchLinkMetadata('https://www.og-title.example');
+    expect(meta.title).toBe('OG Title');
+  });
 
-	it("extracts author from meta author tag", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: '<html><head><meta name="author" content="Example Author"><title>Post</title></head></html>',
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('extracts author from meta author tag', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><meta name="author" content="Example Author"><title>Post</title></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://www.author-tag.example");
-		expect(meta.author).toBe("Example Author");
-		expect(meta.title).toBe("Post");
-	});
+    const meta = await fetchLinkMetadata('https://www.author-tag.example');
+    expect(meta.author).toBe('Example Author');
+    expect(meta.title).toBe('Post');
+  });
 
-	it("ignores og:site_name for author", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: '<html><head><meta property="og:site_name" content="GitHub"><title>Repo</title></head></html>',
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('ignores og:site_name for author', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><meta property="og:site_name" content="GitHub"><title>Repo</title></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://www.site-name.example");
-		expect(meta.author).toBe("");
-		expect(meta.title).toBe("Repo");
-	});
+    const meta = await fetchLinkMetadata('https://www.site-name.example');
+    expect(meta.author).toBe('');
+    expect(meta.title).toBe('Repo');
+  });
 
-	it("returns empty author when meta author is missing", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: "<html><head><title>No Author</title></head></html>",
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('returns empty author when meta author is missing', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><title>No Author</title></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://www.no-author.example");
-		expect(meta.author).toBe("");
-	});
+    const meta = await fetchLinkMetadata('https://www.no-author.example');
+    expect(meta.author).toBe('');
+  });
 
-	it("falls back to <title> when og:title is missing", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: "<html><head><title>Page Title</title></head></html>",
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('falls back to <title> when og:title is missing', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><title>Page Title</title></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://www.title-tag.example");
-		expect(meta.title).toBe("Page Title");
-	});
+    const meta = await fetchLinkMetadata('https://www.title-tag.example');
+    expect(meta.title).toBe('Page Title');
+  });
 
-	it("falls back to hostname with favicon for non-HTML content-type and caches result", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: '{"key": "value"}',
-			headers: { "content-type": "application/json" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('falls back to hostname with favicon for non-HTML content-type and caches result', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '{"key": "value"}',
+      headers: { 'content-type': 'application/json' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://www.api.example/data");
-		expect(meta.title).toBe("www.api.example");
-		expect(meta.favicon).toBe("https://www.api.example/favicon.ico");
+    const meta = await fetchLinkMetadata('https://www.api.example/data');
+    expect(meta.title).toBe('www.api.example');
+    expect(meta.favicon).toBe('https://www.api.example/favicon.ico');
 
-		// Should be cached — non-HTML is a permanent outcome, not a transient error
-		expect(getCachedMetadata("https://www.api.example/data")).toBeDefined();
-	});
+    // Should be cached — non-HTML is a permanent outcome, not a transient error
+    expect(getCachedMetadata('https://www.api.example/data')).toBeDefined();
+  });
 
-	it("falls back to hostname on network failure without caching", async () => {
-		mockRequestUrl.mockRejectedValue(new Error("Network error"));
+  it('falls back to hostname on network failure without caching', async () => {
+    mockRequestUrl.mockRejectedValue(new Error('Network error'));
 
-		const meta = await fetchLinkMetadata("https://www.fail.example/page");
-		expect(meta.title).toBe("www.fail.example");
+    const meta = await fetchLinkMetadata('https://www.fail.example/page');
+    expect(meta.title).toBe('www.fail.example');
 
-		// Should NOT be cached — next call should retry
-		expect(getCachedMetadata("https://www.fail.example/page")).toBeUndefined();
-	});
+    // Should NOT be cached — next call should retry
+    expect(getCachedMetadata('https://www.fail.example/page')).toBeUndefined();
+  });
 
-	it("deduplicates concurrent fetches for the same URL", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: "<html><head><title>Dedup</title></head></html>",
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('deduplicates concurrent fetches for the same URL', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><title>Dedup</title></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const url = "https://www.dedup.example/";
-		const [a, b] = await Promise.all([
-			fetchLinkMetadata(url),
-			fetchLinkMetadata(url),
-		]);
+    const url = 'https://www.dedup.example/';
+    const [a, b] = await Promise.all([fetchLinkMetadata(url), fetchLinkMetadata(url)]);
 
-		expect(a).toBe(b);
-		const pageFetches = mockRequestUrl.mock.calls.filter(
-			(args) => typeof args[0] === "object" && args[0]?.url === url
-		);
-		expect(pageFetches).toHaveLength(1);
-	});
+    expect(a).toBe(b);
+    const pageFetches = mockRequestUrl.mock.calls.filter(
+      (args) => typeof args[0] === 'object' && args[0]?.url === url,
+    );
+    expect(pageFetches).toHaveLength(1);
+  });
 
-	it("returns cached value on subsequent calls", async () => {
-		const url = "https://www.cached-return.example/";
-		mockRequestUrl.mockResolvedValue({
-			text: "<html><head><title>Cached</title></head></html>",
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('returns cached value on subsequent calls', async () => {
+    const url = 'https://www.cached-return.example/';
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><title>Cached</title></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		await fetchLinkMetadata(url);
-		mockRequestUrl.mockClear();
+    await fetchLinkMetadata(url);
+    mockRequestUrl.mockClear();
 
-		const cached = getCachedMetadata(url);
-		expect(cached).toBeDefined();
-		expect(cached!.title).toBe("Cached");
+    const cached = getCachedMetadata(url);
+    expect(cached).toBeDefined();
+    expect(cached!.title).toBe('Cached');
 
-		const meta = await fetchLinkMetadata(url);
-		expect(meta.title).toBe("Cached");
-		const pageFetches = mockRequestUrl.mock.calls.filter(
-			(args) => typeof args[0] === "object" && args[0]?.url === url
-		);
-		expect(pageFetches).toHaveLength(0);
-	});
+    const meta = await fetchLinkMetadata(url);
+    expect(meta.title).toBe('Cached');
+    const pageFetches = mockRequestUrl.mock.calls.filter(
+      (args) => typeof args[0] === 'object' && args[0]?.url === url,
+    );
+    expect(pageFetches).toHaveLength(0);
+  });
 
-	it("strips description from GitHub repo titles", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: '<html><head><meta property="og:title" content="acme/widgets: A widget library"><title>GitHub - acme/widgets: A widget library</title></head></html>',
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('strips description from GitHub repo titles', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><meta property="og:title" content="acme/widgets: A widget library"><title>GitHub - acme/widgets: A widget library</title></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://github.com/acme/widgets");
-		expect(meta.title).toBe("widgets");
-	});
+    const meta = await fetchLinkMetadata('https://github.com/acme/widgets');
+    expect(meta.title).toBe('widgets');
+  });
 
-	it("falls back to hostname and extracts favicon when HTML has no title (JS-rendered sites)", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: '<html><head><link rel="shortcut icon" href="https://cdn.example.com/favicon.ico"></head><body><div id="app"></div></body></html>',
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('falls back to hostname and extracts favicon when HTML has no title (JS-rendered sites)', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><link rel="shortcut icon" href="https://cdn.example.com/favicon.ico"></head><body><div id="app"></div></body></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://www.notitle-favicon.example");
-		expect(meta.title).toBe("www.notitle-favicon.example");
-		expect(meta.favicon).toBe("https://cdn.example.com/favicon.ico");
-	});
+    const meta = await fetchLinkMetadata('https://www.notitle-favicon.example');
+    expect(meta.title).toBe('www.notitle-favicon.example');
+    expect(meta.favicon).toBe('https://cdn.example.com/favicon.ico');
+  });
 
-	it("falls back to hostname and /favicon.ico when HTML has no title and no favicon link", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: "<html><head></head><body><div id=\"app\"></div></body></html>",
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('falls back to hostname and /favicon.ico when HTML has no title and no favicon link', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head></head><body><div id="app"></div></body></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://www.notitle-nofav.example");
-		expect(meta.title).toBe("www.notitle-nofav.example");
-		expect(meta.favicon).toBe("https://www.notitle-nofav.example/favicon.ico");
-	});
+    const meta = await fetchLinkMetadata('https://www.notitle-nofav.example');
+    expect(meta.title).toBe('www.notitle-nofav.example');
+    expect(meta.favicon).toBe('https://www.notitle-nofav.example/favicon.ico');
+  });
 
-	it("caches result when HTML has no title", async () => {
-		const url = "https://www.notitle-cached.example/";
-		mockRequestUrl.mockResolvedValue({
-			text: "<html><head></head><body></body></html>",
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('caches result when HTML has no title', async () => {
+    const url = 'https://www.notitle-cached.example/';
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head></head><body></body></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		await fetchLinkMetadata(url);
-		const cached = getCachedMetadata(url);
-		expect(cached).toBeDefined();
-		expect(cached!.title).toBe("www.notitle-cached.example");
-	});
+    await fetchLinkMetadata(url);
+    const cached = getCachedMetadata(url);
+    expect(cached).toBeDefined();
+    expect(cached!.title).toBe('www.notitle-cached.example');
+  });
 
-	it("normalizes bare domain before fetching", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: "<html><head><title>Normalized</title></head></html>",
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('normalizes bare domain before fetching', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><title>Normalized</title></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata("https://example.com");
-		expect(meta.title).toBe("Normalized");
+    const meta = await fetchLinkMetadata('https://example.com');
+    expect(meta.title).toBe('Normalized');
 
-		const pageFetch = mockRequestUrl.mock.calls.find(
-			(args) => typeof args[0] === "object" && args[0]?.url === "https://example.com/"
-		);
-		expect(pageFetch).toBeDefined();
-	});
+    const pageFetch = mockRequestUrl.mock.calls.find(
+      (args) => typeof args[0] === 'object' && args[0]?.url === 'https://example.com/',
+    );
+    expect(pageFetch).toBeDefined();
+  });
 
-	it("uses URL slug as fallback title when HTML has no title and URL has a readable path", async () => {
-		mockRequestUrl.mockResolvedValue({
-			text: "<html><head></head><body></body></html>",
-			headers: { "content-type": "text/html" },
-			arrayBuffer: new ArrayBuffer(0),
-			json: {},
-			status: 200,
-		});
+  it('uses URL slug as fallback title when HTML has no title and URL has a readable path', async () => {
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head></head><body></body></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
 
-		const meta = await fetchLinkMetadata(
-			"https://www.amazon.es/Motivational-Interviewing-Fourth-Edition/dp/146255279X"
-		);
-		expect(meta.title).toBe("Motivational Interviewing Fourth Edition");
-	});
+    const meta = await fetchLinkMetadata(
+      'https://www.amazon.es/Motivational-Interviewing-Fourth-Edition/dp/146255279X',
+    );
+    expect(meta.title).toBe('Motivational Interviewing Fourth Edition');
+  });
 });

@@ -1,12 +1,12 @@
-import { requestUrl } from "obsidian";
+import { requestUrl } from 'obsidian';
 import {
   extractAuthor,
   extractDocTitle,
   extractFaviconUrl,
   extractGithubTitle,
   extractOgTitle,
-} from "./parsers/html";
-import { extractRedditTitle, extractUrlTitle } from "./parsers/url";
+} from './parsers/html';
+import { extractRedditTitle, extractUrlTitle } from './parsers/url';
 
 /** Resolved metadata for an external link, used to render mention pills. */
 export interface LinkMetadata {
@@ -74,7 +74,7 @@ export function normalizeUrl(raw: string): string {
  * @internal exported for testing
  */
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  let binary = "";
+  let binary = '';
   const bytes = new Uint8Array(buffer);
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
@@ -92,11 +92,11 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
 export function getContentType(headers: Record<string, string>): string {
   // Header keys may vary in casing across environments
   for (const key of Object.keys(headers)) {
-    if (key.toLowerCase() === "content-type") {
-      return headers[key].split(";")[0].trim();
+    if (key.toLowerCase() === 'content-type') {
+      return headers[key].split(';')[0].trim();
     }
   }
-  return "image/png";
+  return 'image/png';
 }
 
 /**
@@ -109,9 +109,9 @@ function fetchFavicon(pageUrl: string, doc: Document | null): string {
     if (fromHtml) return fromHtml;
   }
   try {
-    return new URL("/favicon.ico", pageUrl).href;
+    return new URL('/favicon.ico', pageUrl).href;
   } catch {
-    return "";
+    return '';
   }
 }
 
@@ -119,15 +119,15 @@ function fetchFavicon(pageUrl: string, doc: Document | null): string {
 const OEMBED_ENDPOINTS: { pattern: RegExp; endpoint: string }[] = [
   {
     pattern: /^https?:\/\/(www\.)?youtube\.com\/watch/,
-    endpoint: "https://www.youtube.com/oembed?format=json&url=",
+    endpoint: 'https://www.youtube.com/oembed?format=json&url=',
   },
   {
     pattern: /^https?:\/\/youtu\.be\//,
-    endpoint: "https://www.youtube.com/oembed?format=json&url=",
+    endpoint: 'https://www.youtube.com/oembed?format=json&url=',
   },
   {
     pattern: /^https?:\/\/(www\.)?vimeo\.com\/\d+/,
-    endpoint: "https://vimeo.com/api/oembed.json?url=",
+    endpoint: 'https://vimeo.com/api/oembed.json?url=',
   },
 ];
 
@@ -146,11 +146,11 @@ export async function fetchOembed(
       try {
         const response = await requestUrl({
           url: `${endpoint}${encodeURIComponent(url)}`,
-          method: "GET",
+          method: 'GET',
         });
         const title = response.json?.title?.trim();
         if (!title) return undefined;
-        const author = response.json?.author_name?.trim() ?? "";
+        const author = response.json?.author_name?.trim() ?? '';
         return { title, author };
       } catch {
         return undefined;
@@ -178,33 +178,33 @@ async function doFetch(url: string): Promise<LinkMetadata> {
 
   const response = await requestUrl({
     url,
-    method: "GET",
+    method: 'GET',
     headers: { Range: `bytes=0-${MAX_HTML_BYTES}` },
     throw: false,
   });
 
   const ct = getContentType(response.headers);
 
-  if (!ct.startsWith("text/html")) {
+  if (!ct.startsWith('text/html')) {
     const title = extractUrlTitle(url);
     const favicon = fetchFavicon(url, null);
-    return { title, favicon, author: "" };
+    return { title, favicon, author: '' };
   }
 
   const html = response.text.slice(0, MAX_HTML_BYTES);
-  doc = new DOMParser().parseFromString(html, "text/html");
+  doc = new DOMParser().parseFromString(html, 'text/html');
 
   let title: string | undefined;
 
   try {
     const hostname = new URL(url).hostname;
-    if (hostname === "github.com" || hostname === "www.github.com") {
+    if (hostname === 'github.com' || hostname === 'www.github.com') {
       title = extractGithubTitle(doc);
     }
     if (
-      hostname === "reddit.com" ||
-      hostname === "www.reddit.com" ||
-      hostname === "old.reddit.com"
+      hostname === 'reddit.com' ||
+      hostname === 'www.reddit.com' ||
+      hostname === 'old.reddit.com'
     ) {
       const reddit = extractRedditTitle(url);
       if (reddit) {
@@ -225,7 +225,7 @@ async function doFetch(url: string): Promise<LinkMetadata> {
   const author = extractAuthor(doc);
   const favicon = fetchFavicon(url, doc);
 
-  return { title, favicon, author: author ?? "" };
+  return { title, favicon, author: author ?? '' };
 }
 
 /**
@@ -264,7 +264,7 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
       // Return fallback without caching so the next
       // decoration rebuild will retry the fetch.
       const title = extractUrlTitle(normalized);
-      return { title, favicon: "", author: "" } as LinkMetadata;
+      return { title, favicon: '', author: '' } as LinkMetadata;
     });
   inflight.set(normalized, pending);
   return pending;

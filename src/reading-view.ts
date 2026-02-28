@@ -1,6 +1,6 @@
-import { MarkdownPostProcessorContext, setIcon } from "obsidian";
-import { fetchLinkMetadata, getCachedMetadata } from "./metadata";
-import { extractUrlTitle } from "./parsers/url";
+import { MarkdownPostProcessorContext, setIcon } from 'obsidian';
+import { fetchLinkMetadata, getCachedMetadata } from './metadata';
+import { extractUrlTitle } from './parsers/url';
 
 /**
  * Creates a styled `<a>` pill element displaying a favicon and title
@@ -9,47 +9,47 @@ import { extractUrlTitle } from "./parsers/url";
  *
  * @internal exported for testing
  */
-export function createPill(title: string, favicon: string, href: string, author = ""): HTMLElement {
-	const pill = document.createElement("a");
-	pill.className = "link-mention external-link";
-	pill.href = href;
-	pill.setAttribute("target", "_blank");
-	pill.setAttribute("rel", "noopener");
+export function createPill(title: string, favicon: string, href: string, author = ''): HTMLElement {
+  const pill = document.createElement('a');
+  pill.className = 'link-mention external-link';
+  pill.href = href;
+  pill.setAttribute('target', '_blank');
+  pill.setAttribute('rel', 'noopener');
 
-	if (favicon) {
-		const img = document.createElement("img");
-		img.className = "link-mention-favicon";
-		img.src = favicon;
-		img.alt = "";
-		img.setAttribute("width", "19");
-		img.setAttribute("height", "19");
-		img.addEventListener("error", () => {
-			const iconEl = document.createElement("span");
-			iconEl.className = "link-mention-favicon link-mention-default-icon";
-			setIcon(iconEl, "link");
-			img.replaceWith(iconEl);
-		});
-		pill.appendChild(img);
-	} else {
-		const iconEl = document.createElement("span");
-		iconEl.className = "link-mention-favicon link-mention-default-icon";
-		setIcon(iconEl, "link");
-		pill.appendChild(iconEl);
-	}
+  if (favicon) {
+    const img = document.createElement('img');
+    img.className = 'link-mention-favicon';
+    img.src = favicon;
+    img.alt = '';
+    img.setAttribute('width', '19');
+    img.setAttribute('height', '19');
+    img.addEventListener('error', () => {
+      const iconEl = document.createElement('span');
+      iconEl.className = 'link-mention-favicon link-mention-default-icon';
+      setIcon(iconEl, 'link');
+      img.replaceWith(iconEl);
+    });
+    pill.appendChild(img);
+  } else {
+    const iconEl = document.createElement('span');
+    iconEl.className = 'link-mention-favicon link-mention-default-icon';
+    setIcon(iconEl, 'link');
+    pill.appendChild(iconEl);
+  }
 
-	if (author) {
-		const authorSpan = document.createElement("span");
-		authorSpan.className = "link-mention-author";
-		authorSpan.textContent = author;
-		pill.appendChild(authorSpan);
-	}
+  if (author) {
+    const authorSpan = document.createElement('span');
+    authorSpan.className = 'link-mention-author';
+    authorSpan.textContent = author;
+    pill.appendChild(authorSpan);
+  }
 
-	const span = document.createElement("span");
-	span.className = "link-mention-title";
-	span.textContent = title;
+  const span = document.createElement('span');
+  span.className = 'link-mention-title';
+  span.textContent = title;
 
-	pill.appendChild(span);
-	return pill;
+  pill.appendChild(span);
+  return pill;
 }
 
 /**
@@ -60,10 +60,10 @@ export function createPill(title: string, favicon: string, href: string, author 
  * @internal exported for testing
  */
 export function isEmptyTextLink(el: HTMLAnchorElement): boolean {
-	const href = el.getAttribute("href") || "";
-	const text = el.textContent?.trim() || "";
-	// Obsidian renders [](url) with the URL itself as visible text
-	return text === "" || text === href;
+  const href = el.getAttribute('href') || '';
+  const text = el.textContent?.trim() || '';
+  // Obsidian renders [](url) with the URL itself as visible text
+  return text === '' || text === href;
 }
 
 /**
@@ -72,31 +72,31 @@ export function isEmptyTextLink(el: HTMLAnchorElement): boolean {
  * with styled mention pills, and triggers metadata fetches for uncached URLs.
  */
 export function readingViewPostProcessor(
-	el: HTMLElement,
-	_ctx: MarkdownPostProcessorContext
+  el: HTMLElement,
+  _ctx: MarkdownPostProcessorContext,
 ): void {
-	const links = el.querySelectorAll<HTMLAnchorElement>("a.external-link");
+  const links = el.querySelectorAll<HTMLAnchorElement>('a.external-link');
 
-	for (const link of Array.from(links)) {
-		if (!isEmptyTextLink(link)) continue;
+  for (const link of Array.from(links)) {
+    if (!isEmptyTextLink(link)) continue;
 
-		const href = link.getAttribute("href");
-		if (!href) continue;
+    const href = link.getAttribute('href');
+    if (!href) continue;
 
-		const cached = getCachedMetadata(href);
-		if (cached) {
-			const pill = createPill(cached.title, cached.favicon, href, cached.author);
-			link.replaceWith(pill);
-		} else {
-			// Show URL-derived placeholder, then upgrade when fetch completes
-			const placeholderTitle = extractUrlTitle(href);
-			const placeholder = createPill(placeholderTitle, "", href);
-			link.replaceWith(placeholder);
+    const cached = getCachedMetadata(href);
+    if (cached) {
+      const pill = createPill(cached.title, cached.favicon, href, cached.author);
+      link.replaceWith(pill);
+    } else {
+      // Show URL-derived placeholder, then upgrade when fetch completes
+      const placeholderTitle = extractUrlTitle(href);
+      const placeholder = createPill(placeholderTitle, '', href);
+      link.replaceWith(placeholder);
 
-			fetchLinkMetadata(href).then((meta) => {
-				const pill = createPill(meta.title, meta.favicon, href, meta.author);
-				placeholder.replaceWith(pill);
-			});
-		}
-	}
+      fetchLinkMetadata(href).then((meta) => {
+        const pill = createPill(meta.title, meta.favicon, href, meta.author);
+        placeholder.replaceWith(pill);
+      });
+    }
+  }
 }

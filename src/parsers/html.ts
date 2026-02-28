@@ -6,10 +6,7 @@
  *
  * @internal exported for testing
  */
-export function extractFaviconUrl(
-  doc: Document,
-  pageUrl: string,
-): string | null {
+export function extractFaviconUrl(doc: Document, pageUrl: string): string | null {
   // Try <link rel="icon"> and <link rel="shortcut icon"> in order
   const selectors = [
     'link[rel="icon"]',
@@ -19,7 +16,7 @@ export function extractFaviconUrl(
 
   for (const sel of selectors) {
     const el = doc.querySelector(sel);
-    const href = el?.getAttribute("href");
+    const href = el?.getAttribute('href');
     if (href) {
       try {
         // href may be relative — resolve against the page URL
@@ -40,10 +37,7 @@ export function extractFaviconUrl(
  */
 export function extractOgTitle(doc: Document): string | undefined {
   return (
-    doc
-      .querySelector('meta[property="og:title"]')
-      ?.getAttribute("content")
-      ?.trim() || undefined
+    doc.querySelector('meta[property="og:title"]')?.getAttribute('content')?.trim() || undefined
   );
 }
 
@@ -56,10 +50,7 @@ export function extractOgTitle(doc: Document): string | undefined {
  */
 export function extractOgSiteName(doc: Document): string | undefined {
   return (
-    doc
-      .querySelector('meta[property="og:site_name"]')
-      ?.getAttribute("content")
-      ?.trim() || undefined
+    doc.querySelector('meta[property="og:site_name"]')?.getAttribute('content')?.trim() || undefined
   );
 }
 
@@ -69,12 +60,7 @@ export function extractOgSiteName(doc: Document): string | undefined {
  * @internal exported for testing
  */
 export function extractAuthor(doc: Document): string | undefined {
-  return (
-    doc
-      .querySelector('meta[name="author"]')
-      ?.getAttribute("content")
-      ?.trim() || undefined
-  );
+  return doc.querySelector('meta[name="author"]')?.getAttribute('content')?.trim() || undefined;
 }
 
 /**
@@ -86,7 +72,7 @@ export function extractAuthor(doc: Document): string | undefined {
  * @internal exported for testing
  */
 export function extractDocTitle(doc: Document): string | undefined {
-  const raw = doc.querySelector("title")?.textContent?.trim();
+  const raw = doc.querySelector('title')?.textContent?.trim();
   if (!raw) return undefined;
   // Split on common separators and take the first segment
   const segment = raw.split(/\s*[·|—]\s*/)[0].trim();
@@ -105,13 +91,13 @@ export function extractDocTitle(doc: Document): string | undefined {
 export function extractGithubTitle(doc: Document): string | undefined {
   const ogTitle = extractOgTitle(doc);
   if (ogTitle) {
-    const withoutDesc = ogTitle.split(":")[0].trim();
-    return withoutDesc.split("/").pop()?.trim() || undefined;
+    const withoutDesc = ogTitle.split(':')[0].trim();
+    return withoutDesc.split('/').pop()?.trim() || undefined;
   }
   const docTitle = extractDocTitle(doc);
   if (docTitle) {
-    const withoutDesc = docTitle.split(":")[0].trim();
-    return withoutDesc.split("/").pop()?.trim() || undefined;
+    const withoutDesc = docTitle.split(':')[0].trim();
+    return withoutDesc.split('/').pop()?.trim() || undefined;
   }
   return undefined;
 }

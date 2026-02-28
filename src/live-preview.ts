@@ -5,10 +5,10 @@ import {
   ViewPlugin,
   ViewUpdate,
   WidgetType,
-} from "@codemirror/view";
-import { setIcon } from "obsidian";
-import { EditorSelection, Range } from "@codemirror/state";
-import { fetchLinkMetadata, getCachedMetadata, LinkMetadata } from "./metadata";
+} from '@codemirror/view';
+import { setIcon } from 'obsidian';
+import { EditorSelection, Range } from '@codemirror/state';
+import { fetchLinkMetadata, getCachedMetadata, LinkMetadata } from './metadata';
 
 /**
  * CodeMirror widget that renders a mention pill (favicon + title)
@@ -24,47 +24,51 @@ class LinkMentionWidget extends WidgetType {
 
   /** Two widgets are equal if they point to the same URL with the same title. */
   eq(other: LinkMentionWidget): boolean {
-    return this.url === other.url && this.meta.title === other.meta.title && this.meta.author === other.meta.author;
+    return (
+      this.url === other.url &&
+      this.meta.title === other.meta.title &&
+      this.meta.author === other.meta.author
+    );
   }
 
   /** Builds the pill `<a>` element with favicon, title, and click handling. */
   toDOM(): HTMLElement {
-    const pill = document.createElement("a");
-    pill.className = "link-mention external-link";
+    const pill = document.createElement('a');
+    pill.className = 'link-mention external-link';
     pill.href = this.url;
-    pill.setAttribute("target", "_blank");
-    pill.setAttribute("rel", "noopener");
+    pill.setAttribute('target', '_blank');
+    pill.setAttribute('rel', 'noopener');
 
     if (this.meta.favicon) {
-      const img = document.createElement("img");
-      img.className = "link-mention-favicon";
+      const img = document.createElement('img');
+      img.className = 'link-mention-favicon';
       img.src = this.meta.favicon;
-      img.alt = "";
-      img.setAttribute("width", "19");
-      img.setAttribute("height", "19");
-      img.addEventListener("error", () => {
-        const iconEl = document.createElement("span");
-        iconEl.className = "link-mention-favicon link-mention-default-icon";
-        setIcon(iconEl, "link");
+      img.alt = '';
+      img.setAttribute('width', '19');
+      img.setAttribute('height', '19');
+      img.addEventListener('error', () => {
+        const iconEl = document.createElement('span');
+        iconEl.className = 'link-mention-favicon link-mention-default-icon';
+        setIcon(iconEl, 'link');
         img.replaceWith(iconEl);
       });
       pill.appendChild(img);
     } else {
-      const iconEl = document.createElement("span");
-      iconEl.className = "link-mention-favicon link-mention-default-icon";
-      setIcon(iconEl, "link");
+      const iconEl = document.createElement('span');
+      iconEl.className = 'link-mention-favicon link-mention-default-icon';
+      setIcon(iconEl, 'link');
       pill.appendChild(iconEl);
     }
 
     if (this.meta.author) {
-      const author = document.createElement("span");
-      author.className = "link-mention-author";
+      const author = document.createElement('span');
+      author.className = 'link-mention-author';
       author.textContent = this.meta.author;
       pill.appendChild(author);
     }
 
-    const span = document.createElement("span");
-    span.className = "link-mention-title";
+    const span = document.createElement('span');
+    span.className = 'link-mention-title';
     span.textContent = this.meta.title;
 
     pill.appendChild(span);
@@ -73,7 +77,7 @@ class LinkMentionWidget extends WidgetType {
     // (which would reveal the raw markdown). Only stop propagation for
     // plain left-clicks; let modifier-clicks bubble to Obsidian so it
     // can show/dismiss its context menu.
-    pill.addEventListener("mousedown", (e) => {
+    pill.addEventListener('mousedown', (e) => {
       if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey) return;
       e.preventDefault();
       if (e.button === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -81,11 +85,11 @@ class LinkMentionWidget extends WidgetType {
       }
     });
 
-    pill.addEventListener("click", (e) => {
+    pill.addEventListener('click', (e) => {
       if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey) return;
       e.preventDefault();
       e.stopPropagation();
-      window.open(this.url, "_blank");
+      window.open(this.url, '_blank');
     });
 
     return pill;
@@ -113,11 +117,7 @@ interface KnownLink {
  *
  * @internal exported for testing
  */
-export function cursorInRange(
-  selection: EditorSelection,
-  from: number,
-  to: number,
-): boolean {
+export function cursorInRange(selection: EditorSelection, from: number, to: number): boolean {
   return selection.ranges.some((range) => range.from >= from && range.to <= to);
 }
 
@@ -129,21 +129,15 @@ export function cursorInRange(
  * `.document-search-count`, then performs its own case-insensitive
  * text search to map the index to a document position.
  */
-function getSelectedSearchRange(
-  view: EditorView,
-): { from: number; to: number } | null {
-  const leaf = view.dom.closest(".workspace-leaf-content");
+function getSelectedSearchRange(view: EditorView): { from: number; to: number } | null {
+  const leaf = view.dom.closest('.workspace-leaf-content');
   if (!leaf) return null;
 
-  const input = leaf.querySelector(
-    ".document-search-container input",
-  ) as HTMLInputElement | null;
+  const input = leaf.querySelector('.document-search-container input') as HTMLInputElement | null;
   const query = input?.value;
   if (!query) return null;
 
-  const counter = leaf.querySelector(
-    ".document-search-count",
-  ) as HTMLElement | null;
+  const counter = leaf.querySelector('.document-search-count') as HTMLElement | null;
   const m = counter?.textContent?.match(/(\d+)\s*\/\s*(\d+)/);
   if (!m) return null;
 
@@ -289,18 +283,18 @@ export const livePreviewExtension = ViewPlugin.fromClass(
       // Watch the workspace leaf for the search container appearing or
       // disappearing. When it appears, attach input/keydown listeners
       // to react to query changes and result navigation (Enter/arrows).
-      const leaf = view.dom.closest(".workspace-leaf-content");
+      const leaf = view.dom.closest('.workspace-leaf-content');
       if (leaf) {
         this.searchObserver = new MutationObserver(() => {
           const input = leaf.querySelector(
-            ".document-search-container input",
+            '.document-search-container input',
           ) as HTMLInputElement | null;
 
           if (input && input !== this.searchInput) {
             this.detachSearchInput();
             this.searchInput = input;
-            this.searchInput.addEventListener("input", this.scheduleSearchRebuild);
-            this.searchInput.addEventListener("keydown", this.scheduleSearchRebuild);
+            this.searchInput.addEventListener('input', this.scheduleSearchRebuild);
+            this.searchInput.addEventListener('keydown', this.scheduleSearchRebuild);
             this.scheduleSearchRebuild();
           } else if (!input && this.searchInput) {
             this.detachSearchInput();
@@ -327,8 +321,8 @@ export const livePreviewExtension = ViewPlugin.fromClass(
 
     private detachSearchInput(): void {
       if (this.searchInput) {
-        this.searchInput.removeEventListener("input", this.scheduleSearchRebuild);
-        this.searchInput.removeEventListener("keydown", this.scheduleSearchRebuild);
+        this.searchInput.removeEventListener('input', this.scheduleSearchRebuild);
+        this.searchInput.removeEventListener('keydown', this.scheduleSearchRebuild);
         this.searchInput = null;
       }
     }
@@ -367,22 +361,22 @@ export const livePreviewExtension = ViewPlugin.fromClass(
       } else if (this.hasPendingFetches || this.searchNeedsRebuild) {
         this.hasPendingFetches = false;
         this.searchNeedsRebuild = false;
-        this.decorations = rebuildFromKnown(
-          update.view,
-          this.knownLinks,
-          onFetch,
-        );
+        this.decorations = rebuildFromKnown(update.view, this.knownLinks, onFetch);
       }
     }
   },
   {
     decorations: (v) => v.decorations,
     eventHandlers: {
-      mousedown(this: { knownLinks: KnownLink[]; decorations: DecorationSet }, event: MouseEvent, view: EditorView) {
+      mousedown(
+        this: { knownLinks: KnownLink[]; decorations: DecorationSet },
+        event: MouseEvent,
+        view: EditorView,
+      ) {
         if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey) return;
         const target = event.target as HTMLElement;
-        const icon = target.closest(".external-link");
-        if (!icon || icon.classList.contains("link-mention")) return;
+        const icon = target.closest('.external-link');
+        if (!icon || icon.classList.contains('link-mention')) return;
         const pos = view.posAtDOM(icon);
         const link = this.knownLinks.find((l) => pos >= l.from && pos <= l.to + 2);
         if (link) {
@@ -390,17 +384,21 @@ export const livePreviewExtension = ViewPlugin.fromClass(
           event.stopPropagation();
         }
       },
-      click(this: { knownLinks: KnownLink[]; decorations: DecorationSet }, event: MouseEvent, view: EditorView) {
+      click(
+        this: { knownLinks: KnownLink[]; decorations: DecorationSet },
+        event: MouseEvent,
+        view: EditorView,
+      ) {
         if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey) return;
         const target = event.target as HTMLElement;
-        const icon = target.closest(".external-link");
-        if (!icon || icon.classList.contains("link-mention")) return;
+        const icon = target.closest('.external-link');
+        if (!icon || icon.classList.contains('link-mention')) return;
         const pos = view.posAtDOM(icon);
         const link = this.knownLinks.find((l) => pos >= l.from && pos <= l.to + 2);
         if (link) {
           event.preventDefault();
           event.stopPropagation();
-          window.open(link.url, "_blank");
+          window.open(link.url, '_blank');
         }
       },
     },

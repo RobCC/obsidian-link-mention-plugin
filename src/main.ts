@@ -1,7 +1,7 @@
-import { Plugin, PluginSettingTab, Setting, App } from "obsidian";
-import { readingViewPostProcessor } from "./reading-view";
-import { livePreviewExtension } from "./live-preview";
-import { setMaxConcurrent } from "./metadata";
+import { Plugin, PluginSettingTab, Setting, App } from 'obsidian';
+import { readingViewPostProcessor } from './reading-view';
+import { livePreviewExtension } from './live-preview';
+import { setMaxConcurrent } from './metadata';
 
 interface LinkMentionSettings {
   showExternalArrow: boolean;
@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS: LinkMentionSettings = {
   maxConcurrentFetches: DEFAULT_CONCURRENT_FETCHES,
 };
 
-const HIDE_ARROW_CLASS = "link-mention-hide-arrow";
+const HIDE_ARROW_CLASS = 'link-mention-hide-arrow';
 
 /**
  * Obsidian plugin entry point. Registers the reading-view post-processor
@@ -51,10 +51,7 @@ export default class LinkMentionPlugin extends Plugin {
   }
 
   applyBodyClass(): void {
-    document.body.classList.toggle(
-      HIDE_ARROW_CLASS,
-      !this.settings.showExternalArrow,
-    );
+    document.body.classList.toggle(HIDE_ARROW_CLASS, !this.settings.showExternalArrow);
   }
 }
 
@@ -71,23 +68,19 @@ class LinkMentionSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName("Show external link arrow")
-      .setDesc(
-        "Show Obsidian's external-link arrow icon next to link mention pills.",
-      )
+      .setName('Show external link arrow')
+      .setDesc("Show Obsidian's external-link arrow icon next to link mention pills.")
       .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.showExternalArrow)
-          .onChange(async (value) => {
-            this.plugin.settings.showExternalArrow = value;
-            await this.plugin.saveSettings();
-          }),
+        toggle.setValue(this.plugin.settings.showExternalArrow).onChange(async (value) => {
+          this.plugin.settings.showExternalArrow = value;
+          await this.plugin.saveSettings();
+        }),
       );
 
     new Setting(containerEl)
-      .setName("Max concurrent fetches")
+      .setName('Max concurrent fetches')
       .setDesc(
-        "Number of link metadata requests that can run in parallel. Higher values populate pills faster but may cause rate limiting.",
+        'Number of link metadata requests that can run in parallel. Higher values populate pills faster but may cause rate limiting.',
       )
       .addSlider((slider) =>
         slider
