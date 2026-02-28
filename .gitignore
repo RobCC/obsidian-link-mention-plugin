@@ -17,6 +17,5 @@ data.json
 *.swo
 *~
 .idea/
-.vscode/
 *.sublime-project
 *.sublime-workspace

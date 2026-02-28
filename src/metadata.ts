@@ -100,25 +100,6 @@ export function getContentType(headers: Record<string, string>): string {
 }
 
 /**
- * Fetches an image from {@link imageUrl} and returns it as a `data:` URI.
- * Returns an empty string on any failure (network error, non-image response).
- */
-async function fetchImageAsDataUri(imageUrl: string): Promise<string> {
-  try {
-    const response = await requestUrl({ url: imageUrl, method: "GET" });
-    const contentType = getContentType(response.headers);
-
-    if (!contentType.startsWith("image/")) return "";
-
-    const base64 = arrayBufferToBase64(response.arrayBuffer);
-
-    return `data:${contentType};base64,${base64}`;
-  } catch {
-    return "";
-  }
-}
-
-/**
  * Resolves a favicon URL from the page's `<link>` elements.
  * Returns empty string if no favicon is found.
  */
@@ -220,7 +201,11 @@ async function doFetch(url: string): Promise<LinkMetadata> {
     if (hostname === "github.com" || hostname === "www.github.com") {
       title = extractGithubTitle(doc);
     }
-    if (hostname === "reddit.com" || hostname === "www.reddit.com" || hostname === "old.reddit.com") {
+    if (
+      hostname === "reddit.com" ||
+      hostname === "www.reddit.com" ||
+      hostname === "old.reddit.com"
+    ) {
       const reddit = extractRedditTitle(url);
       if (reddit) {
         const favicon = fetchFavicon(url, doc);
