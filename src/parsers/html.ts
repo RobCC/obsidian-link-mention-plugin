@@ -42,19 +42,6 @@ export function extractOgTitle(doc: Document): string | undefined {
 }
 
 /**
- * Extracts the `og:site_name` meta tag content from a parsed document.
- * Useful for homepages where `og:title` may be missing but the site
- * name is declared (e.g. "GitHub").
- *
- * @internal exported for testing
- */
-export function extractOgSiteName(doc: Document): string | undefined {
-  return (
-    doc.querySelector('meta[property="og:site_name"]')?.getAttribute('content')?.trim() || undefined
-  );
-}
-
-/**
  * Extracts the `meta[name="author"]` content from a parsed document.
  *
  * @internal exported for testing

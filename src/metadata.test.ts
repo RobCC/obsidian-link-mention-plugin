@@ -10,7 +10,6 @@ import {
 import {
   extractFaviconUrl,
   extractOgTitle,
-  extractOgSiteName,
   extractAuthor,
   extractDocTitle,
   extractGithubTitle,
@@ -103,20 +102,6 @@ describe('extractOgTitle', () => {
   it('returns undefined for empty content', () => {
     const doc = makeDoc('<html><head><meta property="og:title" content=""></head></html>');
     expect(extractOgTitle(doc)).toBeUndefined();
-  });
-});
-
-describe('extractOgSiteName', () => {
-  it('extracts og:site_name content', () => {
-    const doc = makeDoc(
-      '<html><head><meta property="og:site_name" content="GitHub"></head></html>',
-    );
-    expect(extractOgSiteName(doc)).toBe('GitHub');
-  });
-
-  it('returns undefined when og:site_name is missing', () => {
-    const doc = makeDoc('<html><head></head></html>');
-    expect(extractOgSiteName(doc)).toBeUndefined();
   });
 });
 
