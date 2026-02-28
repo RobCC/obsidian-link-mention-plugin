@@ -8,7 +8,7 @@ describe('createPill', () => {
     expect(pill.className).toBe('link-mention external-link');
     expect((pill as HTMLAnchorElement).href).toBe('https://example.com/');
     expect(pill.getAttribute('target')).toBe('_blank');
-    expect(pill.getAttribute('rel')).toBe('noopener');
+    expect(pill.getAttribute('rel')).toBe('noopener noreferrer');
     expect(pill.getAttribute('title')).toBe('https://example.com');
   });
 

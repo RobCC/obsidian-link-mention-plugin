@@ -38,7 +38,7 @@ class LinkMentionWidget extends WidgetType {
     pill.href = this.url;
     pill.title = this.url;
     pill.setAttribute('target', '_blank');
-    pill.setAttribute('rel', 'noopener');
+    pill.setAttribute('rel', 'noopener noreferrer');
 
     if (this.meta.favicon) {
       const img = document.createElement('img');

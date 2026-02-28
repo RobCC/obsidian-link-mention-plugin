@@ -15,7 +15,7 @@ export function createPill(title: string, favicon: string, href: string, author 
   pill.href = href;
   pill.title = href;
   pill.setAttribute('target', '_blank');
-  pill.setAttribute('rel', 'noopener');
+  pill.setAttribute('rel', 'noopener noreferrer');
 
   if (favicon) {
     const img = document.createElement('img');
