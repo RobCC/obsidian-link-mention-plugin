@@ -20,7 +20,12 @@ export function createPill(title: string, favicon: string, href: string, author 
 		img.className = "link-mention-favicon";
 		img.src = favicon;
 		img.alt = "";
-		img.addEventListener("error", () => { img.style.display = "none"; });
+		img.addEventListener("error", () => {
+			const iconEl = document.createElement("span");
+			iconEl.className = "link-mention-favicon link-mention-default-icon";
+			setIcon(iconEl, "link");
+			img.replaceWith(iconEl);
+		});
 		pill.appendChild(img);
 	} else {
 		const iconEl = document.createElement("span");

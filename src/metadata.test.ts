@@ -428,7 +428,7 @@ describe("fetchLinkMetadata", () => {
 		expect(meta.title).toBe("Page Title");
 	});
 
-	it("falls back to hostname for non-HTML content-type", async () => {
+	it("falls back to hostname with favicon for non-HTML content-type and caches result", async () => {
 		mockRequestUrl.mockResolvedValue({
 			text: '{"key": "value"}',
 			headers: { "content-type": "application/json" },
@@ -439,6 +439,10 @@ describe("fetchLinkMetadata", () => {
 
 		const meta = await fetchLinkMetadata("https://www.api.example/data");
 		expect(meta.title).toBe("www.api.example");
+		expect(meta.favicon).toBe("https://www.api.example/favicon.ico");
+
+		// Should be cached — non-HTML is a permanent outcome, not a transient error
+		expect(getCachedMetadata("https://www.api.example/data")).toBeDefined();
 	});
 
 	it("falls back to hostname on network failure without caching", async () => {

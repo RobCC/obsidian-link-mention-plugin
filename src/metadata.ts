@@ -195,18 +195,20 @@ async function doFetch(url: string): Promise<LinkMetadata> {
     return { title: oembed.title, favicon, author: oembed.author };
   }
 
-  // Fetch the page HTML — let errors propagate so callers can
-  // distinguish a failed fetch from a successful one (and avoid
-  // permanently caching a hostname fallback).
   const response = await requestUrl({
     url,
     method: "GET",
     headers: { Range: `bytes=0-${MAX_HTML_BYTES}` },
+    throw: false,
   });
 
   const ct = getContentType(response.headers);
 
-  if (!ct.startsWith("text/html")) throw new Error("not html");
+  if (!ct.startsWith("text/html")) {
+    const hostname = new URL(url).hostname;
+    const favicon = fetchFavicon(url, null);
+    return { title: hostname, favicon, author: "" };
+  }
 
   const html = response.text.slice(0, MAX_HTML_BYTES);
   doc = new DOMParser().parseFromString(html, "text/html");

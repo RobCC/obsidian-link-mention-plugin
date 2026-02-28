@@ -41,7 +41,10 @@ class LinkMentionWidget extends WidgetType {
       img.src = this.meta.favicon;
       img.alt = "";
       img.addEventListener("error", () => {
-        img.style.display = "none";
+        const iconEl = document.createElement("span");
+        iconEl.className = "link-mention-favicon link-mention-default-icon";
+        setIcon(iconEl, "link");
+        img.replaceWith(iconEl);
       });
       pill.appendChild(img);
     } else {
