@@ -40,6 +40,8 @@ class LinkMentionWidget extends WidgetType {
       img.className = "link-mention-favicon";
       img.src = this.meta.favicon;
       img.alt = "";
+      img.setAttribute("width", "19");
+      img.setAttribute("height", "19");
       img.addEventListener("error", () => {
         const iconEl = document.createElement("span");
         iconEl.className = "link-mention-favicon link-mention-default-icon";

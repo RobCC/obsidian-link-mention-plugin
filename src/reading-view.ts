@@ -21,6 +21,8 @@ export function createPill(title: string, favicon: string, href: string, author 
 		img.className = "link-mention-favicon";
 		img.src = favicon;
 		img.alt = "";
+		img.setAttribute("width", "19");
+		img.setAttribute("height", "19");
 		img.addEventListener("error", () => {
 			const iconEl = document.createElement("span");
 			iconEl.className = "link-mention-favicon link-mention-default-icon";

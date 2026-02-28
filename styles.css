@@ -6,7 +6,7 @@ body {
   --link-mention-background: var(--background-secondary);
   --link-mention-border: 1px solid var(--background-modifier-border);
   --link-mention-background-hover: var(--background-modifier-hover);
-  --link-mention-favicon-size: 0.875em;
+  --link-mention-favicon-size: 0.9375em;
   --link-mention-text-color: var(--text-normal);
   --link-mention-underline-color: color-mix(
     in srgb,
@@ -49,18 +49,19 @@ body.link-mention-hide-arrow .link-mention + * + .external-link {
 .link-mention-favicon {
   width: var(--link-mention-favicon-size);
   height: var(--link-mention-favicon-size);
-  vertical-align: middle;
+  vertical-align: -0.125em;
   margin-right: var(--link-mention-gap);
 }
 
 .link-mention-default-icon {
+  display: inline-flex;
   color: var(--text-muted);
 }
 
 .link-mention-default-icon svg {
   width: var(--link-mention-favicon-size);
   height: var(--link-mention-favicon-size);
-  vertical-align: middle;
+  vertical-align: -0.125em;
 }
 
 .link-mention-author {

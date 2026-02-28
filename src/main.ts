@@ -11,7 +11,7 @@ interface LinkMentionSettings {
 /** Default number of concurrent metadata fetches. */
 const DEFAULT_CONCURRENT_FETCHES = 4;
 /** Upper bound for the concurrent fetches slider. Too high can freeze the UI on link-heavy notes. */
-const MAX_CONCURRENT_LIMIT = 20;
+const MAX_CONCURRENT_LIMIT = 30;
 
 const DEFAULT_SETTINGS: LinkMentionSettings = {
   showExternalArrow: true,
