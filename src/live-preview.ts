@@ -146,13 +146,13 @@ function getSelectedSearchRange(view: EditorView): { from: number; to: number } 
     return null;
   }
 
-  const input = leaf.querySelector('.document-search-container input') as HTMLInputElement | null;
+  const input = leaf.querySelector<HTMLInputElement>('.document-search-container input');
   const query = input?.value;
   if (!query) {
     return null;
   }
 
-  const counter = leaf.querySelector('.document-search-count') as HTMLElement | null;
+  const counter = leaf.querySelector<HTMLElement>('.document-search-count');
   const m = counter?.textContent?.match(/(\d+)\s*\/\s*(\d+)/);
   if (!m) {
     return null;
@@ -233,7 +233,7 @@ function buildDecorations(
           }).range(matchFrom, matchTo),
         );
       } else {
-        fetchLinkMetadata(url).then(onFetchComplete);
+        void fetchLinkMetadata(url).then(onFetchComplete);
       }
     }
   }
@@ -309,9 +309,7 @@ export const livePreviewExtension = ViewPlugin.fromClass(
       const leaf = view.dom.closest('.workspace-leaf-content');
       if (leaf) {
         this.searchObserver = new MutationObserver(() => {
-          const input = leaf.querySelector(
-            '.document-search-container input',
-          ) as HTMLInputElement | null;
+          const input = leaf.querySelector<HTMLInputElement>('.document-search-container input');
 
           if (input && input !== this.searchInput) {
             this.detachSearchInput();

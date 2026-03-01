@@ -98,7 +98,7 @@ export function readingViewPostProcessor(
       const placeholder = createPill(placeholderTitle, '', href);
       link.replaceWith(placeholder);
 
-      fetchLinkMetadata(href).then((meta) => {
+      void fetchLinkMetadata(href).then((meta) => {
         const pill = createPill(meta.title, meta.favicon, href, meta.author);
         placeholder.replaceWith(pill);
       });
