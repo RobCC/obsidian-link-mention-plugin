@@ -272,7 +272,7 @@ function rebuildFromKnown(
         }).range(from, to),
       );
     } else {
-      fetchLinkMetadata(url).then(onFetchComplete);
+      void fetchLinkMetadata(url).then(onFetchComplete);
     }
   }
 

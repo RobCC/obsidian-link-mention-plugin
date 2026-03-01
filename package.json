@@ -10,7 +10,8 @@
     "format:check": "oxfmt --check src/",
     "lint": "oxlint src/",
     "test": "vitest run",
-    "test-titles": "npx tsx scripts/test-titles.ts"
+    "test-titles": "npx tsx scripts/test-titles.ts",
+    "version": "node scripts/sync-version.mjs && git add manifest.json"
   },
   "keywords": [],
   "author": "",
