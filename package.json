@@ -1,6 +1,6 @@
 {
   "name": "obsidian-link-mention",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Render empty markdown links as rich inline pills with favicon and page title",
   "main": "main.js",
   "scripts": {
