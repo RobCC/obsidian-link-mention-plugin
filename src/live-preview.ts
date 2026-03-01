@@ -378,15 +378,19 @@ export const livePreviewExtension = ViewPlugin.fromClass(
     update(update: ViewUpdate): void {
       this.view = update.view;
       const onFetch = () => this.scheduleDispatch(update.view);
-      const selectionMoved = update.state.selection !== update.startState.selection;
-      if (update.docChanged || update.viewportChanged || selectionMoved) {
-        // Full rescan needed — document, viewport, or selection changed
+      if (update.docChanged || update.viewportChanged) {
+        // Full rescan — link positions may have changed
         this.hasPendingFetches = false;
         this.searchNeedsRebuild = false;
         const result = buildDecorations(update.view, onFetch);
         this.decorations = result.decorations;
         this.knownLinks = result.links;
-      } else if (this.hasPendingFetches || this.searchNeedsRebuild) {
+      } else if (
+        update.state.selection !== update.startState.selection ||
+        this.hasPendingFetches ||
+        this.searchNeedsRebuild
+      ) {
+        // Lightweight rebuild — reuse known positions, just re-check cursor/search overlap
         this.hasPendingFetches = false;
         this.searchNeedsRebuild = false;
         this.decorations = rebuildFromKnown(update.view, this.knownLinks, onFetch);

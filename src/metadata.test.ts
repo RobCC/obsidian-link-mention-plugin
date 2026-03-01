@@ -6,6 +6,8 @@ import {
   normalizeUrl,
   getCachedMetadata,
   fetchLinkMetadata,
+  clearFailedCache,
+  getFailedUntil,
 } from './metadata';
 import {
   extractFaviconUrl,
@@ -542,5 +544,62 @@ describe('fetchLinkMetadata', () => {
       'https://www.amazon.es/Motivational-Interviewing-Fourth-Edition/dp/146255279X',
     );
     expect(meta.title).toBe('Motivational Interviewing Fourth Edition');
+  });
+});
+
+describe('negative fetch cache', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    clearFailedCache();
+  });
+
+  it('caches failures for 60 seconds and does not re-fetch within that window', async () => {
+    mockRequestUrl.mockRejectedValue(new Error('Network error'));
+
+    const url = 'https://www.negcache-block.example/page';
+    await fetchLinkMetadata(url);
+
+    // failedUntil should have an entry
+    expect(getFailedUntil().has('https://www.negcache-block.example/page')).toBe(true);
+
+    mockRequestUrl.mockClear();
+
+    // Second call within the 60s window should NOT trigger a network request
+    const meta = await fetchLinkMetadata(url);
+    expect(meta.title).toBe('www.negcache-block.example');
+    expect(mockRequestUrl).not.toHaveBeenCalled();
+  });
+
+  it('retries the fetch after the negative cache expires', async () => {
+    mockRequestUrl.mockRejectedValueOnce(new Error('Network error'));
+
+    const url = 'https://www.negcache-retry.example/page';
+    await fetchLinkMetadata(url);
+
+    // Simulate expiry by backdating the failedUntil entry
+    getFailedUntil().set('https://www.negcache-retry.example/page', Date.now() - 1);
+
+    mockRequestUrl.mockResolvedValue({
+      text: '<html><head><title>Recovered</title></head></html>',
+      headers: { 'content-type': 'text/html' },
+      arrayBuffer: new ArrayBuffer(0),
+      json: {},
+      status: 200,
+    });
+
+    const meta = await fetchLinkMetadata(url);
+    expect(meta.title).toBe('Recovered');
+    expect(mockRequestUrl).toHaveBeenCalled();
+  });
+
+  it('clearFailedCache removes all negative cache entries', async () => {
+    mockRequestUrl.mockRejectedValue(new Error('Network error'));
+
+    await fetchLinkMetadata('https://www.negcache-clear.example/a');
+    await fetchLinkMetadata('https://www.negcache-clear.example/b');
+    expect(getFailedUntil().size).toBeGreaterThanOrEqual(2);
+
+    clearFailedCache();
+    expect(getFailedUntil().size).toBe(0);
   });
 });

@@ -21,6 +21,19 @@ export interface LinkMetadata {
 const cache = new Map<string, LinkMetadata>();
 const inflight = new Map<string, Promise<LinkMetadata>>();
 
+/** URLs that failed recently, mapped to the timestamp when the failure expires. */
+const failedUntil = new Map<string, number>();
+
+/** Clears the negative fetch cache. Exported for testing. */
+export function clearFailedCache(): void {
+  failedUntil.clear();
+}
+
+/** Exposes the failedUntil map for testing. */
+export function getFailedUntil(): Map<string, number> {
+  return failedUntil;
+}
+
 /** Maximum bytes of HTML to parse to prevent fetching the whole page. Only the `<head>` matters. */
 const MAX_HTML_BYTES = 51200;
 
@@ -254,6 +267,12 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
     return cached;
   }
 
+  const failUntil = failedUntil.get(normalized);
+  if (failUntil && Date.now() < failUntil) {
+    const title = extractUrlTitle(normalized);
+    return { title, favicon: '', author: '' };
+  }
+
   let pending = inflight.get(normalized);
   if (pending) {
     return pending;
@@ -269,8 +288,7 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadata> {
     })
     .catch(() => {
       inflight.delete(normalized);
-      // Return fallback without caching so the next
-      // decoration rebuild will retry the fetch.
+      failedUntil.set(normalized, Date.now() + 60_000);
       const title = extractUrlTitle(normalized);
       return { title, favicon: '', author: '' } as LinkMetadata;
     });
