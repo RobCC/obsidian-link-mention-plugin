@@ -358,6 +358,9 @@ export const livePreviewExtension = ViewPlugin.fromClass(
       if (this.searchDebounce) {
         clearTimeout(this.searchDebounce);
       }
+      if (this.dispatchTimer) {
+        clearTimeout(this.dispatchTimer);
+      }
     }
 
     /**
