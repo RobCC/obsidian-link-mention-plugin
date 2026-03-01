@@ -77,7 +77,7 @@ src/
 
 | Component    | Approach                        | Why                                            |
 | ------------ | ------------------------------- | ---------------------------------------------- |
-| Favicon      | Google Favicons API             | Reliable, fast, no CORS issues                 |
+| Favicon      | HTML `<link>` tags + `/favicon.ico` fallback | No external API dependency                     |
 | Page fetch   | Obsidian `requestUrl`           | Bypasses CORS, works on desktop and mobile     |
 | Live Preview | CM6 `ViewPlugin` + `WidgetType` | Viewport-scoped, performant inline decorations |
 | Caching      | In-memory `Map`                 | Simple, clears on plugin reload, no stale data |
